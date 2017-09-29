@@ -112,6 +112,7 @@
 /panda/plugins/*/docs/
 *.tps
 .stgit-*
+.git-submodule-status
 cscope.*
 tags
 TAGS
