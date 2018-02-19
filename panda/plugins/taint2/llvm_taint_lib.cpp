@@ -356,10 +356,10 @@ ConstantInt *PandaTaintVisitor::valueSizeValue(const Value *V) {
 bool inline_taint = false;
 void PandaTaintVisitor::inlineCall(CallInst *CI) {
     assert(CI);
-        if (inline_taint) {
+    if (inline_taint) {
         InlineFunctionInfo IFI;
         if (!InlineFunction(CI, IFI)) {
-            printf("Inlining failed!\n");
+            std::cerr << PANDA_MSG "inlining FAILED!" << std::endl;
         }
     }
 }

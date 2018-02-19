@@ -523,12 +523,14 @@ bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("taint2");
 
     tainted_pointer = !panda_parse_bool_opt(args, "no_tp", "track taint through pointer dereference");
-    std::cerr << PANDA_MSG "Propagating taint through pointer dereference " << PANDA_FLAG_STATUS(tainted_pointer) << std::endl;
+    std::cerr << PANDA_MSG "propagation via pointer dereference " << PANDA_FLAG_STATUS(tainted_pointer) << std::endl;
 
     inline_taint = panda_parse_bool_opt(args, "inline", "inline taint operations");
-    std::cerr << PANDA_MSG "taint ops inlining " << PANDA_FLAG_STATUS(inline_taint) << std::endl;
+    std::cerr << PANDA_MSG "taint operations inlining " << PANDA_FLAG_STATUS(inline_taint) << std::endl;
 
     optimize_llvm = panda_parse_bool_opt(args, "opt", "run LLVM optimization on taint");
+    std::cerr << PANDA_MSG "llvm optimizations " << PANDA_FLAG_STATUS(optimize_llvm) << std::endl;
+
     debug_taint = panda_parse_bool_opt(args, "debug", "enable taint debugging");
 
     panda_require("callstack_instr");

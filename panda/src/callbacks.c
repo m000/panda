@@ -84,7 +84,7 @@ bool panda_load_plugin(const char *filename, const char *plugin_name) {
     uint32_t i;
     for (i=0; i<nb_panda_plugins_loaded; i++) {
         if (0 == (strcmp(filename, panda_plugins_loaded[i]))) {
-            printf ("panda_load_plugin: %s already loaded\n", filename);
+            fprintf(stderr, PANDA_MSG_FMT "%s already loaded\n", PANDA_CORE_NAME, filename);
             return true;
         }
     }    
@@ -109,7 +109,7 @@ bool panda_load_plugin(const char *filename, const char *plugin_name) {
     panda_plugins[nb_panda_plugins].plugin = plugin;
     strncpy(panda_plugins[nb_panda_plugins].name, basename((char *) filename), 256);
     nb_panda_plugins++;
-    fprintf(stderr, "Initializing plugin %s\n", plugin_name ? plugin_name : filename);
+    fprintf(stderr, PANDA_MSG_FMT "initializing %s\n", PANDA_CORE_NAME, plugin_name ? plugin_name : filename);
     panda_help_wanted = false;
     panda_args_set_help_wanted(plugin_name);
     if (panda_help_wanted) {
@@ -152,12 +152,14 @@ void panda_require(const char *plugin_name) {
     // If we're printing help, panda_require will be a no-op.
     if (panda_help_wanted) return;
 
-    printf ("panda_require: %s\n", plugin_name);
+    fprintf(stderr, PANDA_MSG_FMT "loading required plugin %s\n", PANDA_CORE_NAME, plugin_name);
+
     // translate plugin name into a path to .so
     char *plugin_path = panda_plugin_path(plugin_name);
+
     // load plugin same as in vl.c
     if (!panda_load_plugin(plugin_path, plugin_name)) {
-        fprintf(stderr, "panda_require: FAIL: Unable to load plugin `%s' `%s'\n", plugin_name, plugin_path);
+        fprintf(stderr, PANDA_MSG_FMT "FAILED to load required plugin %s from %s\n", PANDA_CORE_NAME, plugin_name, plugin_path);
         abort();
     }
     g_free(plugin_path);

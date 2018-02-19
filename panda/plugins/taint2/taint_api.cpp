@@ -1,3 +1,4 @@
+#include <iostream>
 #include "taint_api.h"
 #include "taint2.h"
 
@@ -49,8 +50,9 @@ static void start_debugging() {
     extern int qemu_loglevel;
     if (!debug_asid) {
         debug_asid = panda_current_asid(first_cpu);
-        printf("taint2: ENABLING DEBUG MODE for asid 0x" TARGET_FMT_lx "\n",
-                debug_asid);
+	std::cerr << std::hex << std::showbase;
+	std::cerr << PANDA_MSG "debug mode for asid " << debug_asid << " " << PANDA_FLAG_STATUS(debug_asid) << std::endl;
+	std::cerr << std::dec << std::noshowbase;
     }
     qemu_loglevel |= CPU_LOG_TAINT_OPS | CPU_LOG_LLVM_IR | CPU_LOG_TB_IN_ASM | CPU_LOG_EXEC;
 }
@@ -166,11 +168,12 @@ void taint2_add_taint_ram_pos(CPUState *cpu, uint64_t addr, uint32_t length, uin
     for (unsigned i = 0; i < length; i++){
         hwaddr pa = panda_virt_to_phys(cpu, addr + i);
         if (pa == (hwaddr)(-1)) {
-            printf("can't label addr=0x%lx: mmu hasn't mapped virt->phys, "
-                "i.e., it isnt actually there.\n", addr +i);
+	    std::cerr << std::hex << std::showbase;
+	    std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
+	    std::cerr << std::dec << std::noshowbase;
             continue;
         }
-        printf("taint2: adding positional taint label %d\n", i+start_label);
+	std::cerr << PANDA_MSG "adding positional taint label " << i+start_label << std::endl;
         label_byte(cpu, addr+i, i+start_label);
     }
 }
@@ -182,12 +185,11 @@ void taint2_add_taint_ram_single_label(CPUState *cpu, uint64_t addr,
     for (unsigned i = 0; i < length; i++){
         hwaddr pa = panda_virt_to_phys(cpu, addr + i);
         if (pa == (hwaddr)(-1)) {
-            printf("can't label addr=0x%lx: mmu hasn't mapped virt->phys, "
-                "i.e., it isnt actually there.\n", addr +i);
+	    std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
             continue;
         }
         //taint2_label_ram(pa, label);
-        printf("taint2: adding single taint label %lu\n", label);
+	std::cerr << PANDA_MSG "adding single taint label " << label << std::endl;
         label_byte(cpu, addr+i, label);
     }
 }
