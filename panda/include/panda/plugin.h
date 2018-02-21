@@ -580,6 +580,15 @@ typedef union panda_cb {
 
   void (*after_machine_init)(CPUState *env);
 
+  /* Dummy union member.
+
+     This union only contains function pointers.
+     Using the cbaddr member one can compare if two union instances
+     point to the same callback function.
+     In principle any other member could be used instead. However
+     cbaddr provides neutral semantics for the comparisson.
+  */
+  void (* cbaddr)(void);
 } panda_cb;
 
 // Doubly linked list that stores a callback, along with its owner
@@ -602,6 +611,8 @@ typedef struct panda_plugin {
 } panda_plugin;
 
 void   panda_register_callback(void *plugin, panda_cb_type type, panda_cb cb);
+void   panda_disable_callback(void *plugin, panda_cb_type type, panda_cb cb);
+void   panda_enable_callback(void *plugin, panda_cb_type type, panda_cb cb);
 void   panda_unregister_callbacks(void *plugin);
 bool   panda_load_plugin(const char *filename, const char *plugin_name);
 bool   panda_add_arg(const char *plugin_name, const char *plugin_arg);

@@ -36,9 +36,11 @@ PANDAENDCOMMENT */
 const gchar *panda_bool_true_strings[] =  {"y", "yes", "true", "1", NULL};
 const gchar *panda_bool_false_strings[] = {"n", "no", "false", "0", NULL};
 
-//void spit_cbs(void) ;
-
-// WARNING: this is all gloriously un-thread-safe
+#if 0
+###########################################################
+WARNING: This is all gloriously thread-unsafe!!!
+###########################################################
+#endif
 
 // Array of pointers to PANDA callback lists, one per callback type
 panda_cb_list *panda_cbs[PANDA_CB_LAST];
@@ -223,46 +225,62 @@ void * panda_get_plugin_by_name(const char *plugin_name) {
 }
 
 void panda_register_callback(void *plugin, panda_cb_type type, panda_cb cb) {
-    panda_cb_list *plist;
-    panda_cb_list *new_list = g_new0(panda_cb_list,1);
+    panda_cb_list *plist_last = NULL;
+    panda_cb_list *new_list = g_new0(panda_cb_list, 1);
     new_list->entry = cb;
     new_list->owner = plugin;
-    new_list->prev = NULL;
-    new_list->next = NULL;
     new_list->enabled = true;
+
     if(panda_cbs[type] != NULL) {
-        for(plist = panda_cbs[type]; plist->next != NULL; plist = plist->next);
-        plist->next = new_list;
-        new_list->prev = plist;
+        for(panda_cb_list *plist = panda_cbs[type]; plist != NULL; plist = plist->next) {
+            // the same plugin can register the same callback only once
+            assert(!(plist->owner == plugin && (plist->entry.cbaddr) == cb.cbaddr));
+            plist_last = plist;
+        }
+        plist_last->next = new_list;
+        new_list->prev = plist_last;
     }
     else {
         panda_cbs[type] = new_list;
     }
 }
 
+void panda_disable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
+    bool found = false;
+    if (panda_cbs[type] != NULL) {
+        for (panda_cb_list *plist = panda_cbs[type]; plist != NULL; plist = plist->next) {
+            if (plist->owner == plugin && (plist->entry.cbaddr) == cb.cbaddr) {
+                found = true;
+                plist->enabled = false;
 
-/*
-void spit_cbs(void) {
-    int i;
-    for (i = 0; i < PANDA_CB_LAST; i++) {
-        panda_cb_list *plist;
-        plist = panda_cbs[i];
-        if (plist != NULL) {
-            printf ("%d: ", i);
-            while (plist != NULL) {
-                printf ("%" PRIx64 "(% " PRIx64" ) ", plist, plist->owner);
-                plist= plist->next;
+                // break out of the loop - the same plugin can register the same callback only once
+                break;
             }
-            printf ("\n");
         }
     }
- }
-*/
+    // no callback found to disable
+    assert(found);
+}
 
+void panda_enable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
+    bool found = false;
+    if (panda_cbs[type] != NULL) {
+        for (panda_cb_list *plist = panda_cbs[type]; plist != NULL; plist = plist->next) {
+            if (plist->owner == plugin && (plist->entry.cbaddr) == cb.cbaddr) {
+                found = true;
+                plist->enabled = true;
+
+                // break out of the loop - the same plugin can register the same callback only once
+                break;
+            }
+        }
+    }
+    // no callback found to enable
+    assert(found);
+}
 
 // Remove callbacks for this plugin
 void panda_unregister_callbacks(void *plugin) {
-    // printf ("panda_unregister_callbacks(%x) enter\n", plugin); spit_cbs();
     int i;
     for (i = 0; i < PANDA_CB_LAST; i++) {
         panda_cb_list *plist;
@@ -295,7 +313,6 @@ void panda_unregister_callbacks(void *plugin) {
         // update head
         panda_cbs[i] = plist_head;
     }
-    //  printf ("panda_unregister_callbacks(%x) exit\n", plugin);  spit_cbs();  printf ("\n\n");
 }
 
 void panda_enable_plugin(void *plugin) {
