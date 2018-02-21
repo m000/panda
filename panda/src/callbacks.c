@@ -11,20 +11,18 @@
  * See the COPYING file in the top-level directory. 
  * 
 PANDAENDCOMMENT */
-//#include "config.h"
 #include <stdint.h>
+#include <string.h>
+#include <dlfcn.h>
 #include <glib.h>
+#include <libgen.h>
 
 #include "panda/plugin.h"
 #include "qapi/qmp/qdict.h"
-
 #include "qmp-commands.h"
 #include "hmp.h"
 #include "qapi/error.h"
-
 #include "monitor/monitor.h"
-
-#include <libgen.h>
 
 #ifdef CONFIG_LLVM
 //#include "panda/panda_helper_call_morph.h"
@@ -33,10 +31,10 @@ PANDAENDCOMMENT */
 #include "panda/helper_runtime.h"
 #endif
 
-#include <dlfcn.h>
-#include <string.h>
-
 #include "panda/common.h"
+
+const gchar *panda_bool_true_strings[] =  {"y", "yes", "true", "1", NULL};
+const gchar *panda_bool_false_strings[] = {"n", "no", "false", "0", NULL};
 
 //void spit_cbs(void) ;
 
@@ -516,24 +514,32 @@ panda_arg_list *panda_get_args(const char *plugin_name) {
 }
 
 static bool panda_parse_bool_internal(panda_arg_list *args, const char *argname, const char *help, bool required) {
+    gchar *val = NULL;
     if (panda_help_wanted) goto help;
     if (!args) goto error_handling;
-    int i;
-    for (i = 0; i < args->nargs; i++) {
-        if (strcmp(args->list[i].key, argname) == 0) {
-            char *val = args->list[i].value;
-            if (strcasecmp("false", val) == 0 || strcasecmp("no", val) == 0) {
-                return false;
-            } else {
-                return true;
+    for (int i = 0; i < args->nargs; i++) {
+        if (g_ascii_strcasecmp(args->list[i].key, argname) == 0) {
+            val = args->list[i].value;
+            for (const gchar **vp=panda_bool_true_strings; *vp != NULL; vp++) {
+                if (g_ascii_strcasecmp(*vp, val) == 0) return true;
             }
+            for (const gchar **vp=panda_bool_false_strings; *vp != NULL; vp++) {
+                if (g_ascii_strcasecmp(*vp, val) == 0) return false;
+            }
+
+            // argument name matched
+            break;
         }
     }
 
 error_handling:
-    if (required) {
-        fprintf(stderr, "ERROR: plugin required bool argument \"%s\" but you did not provide it\n", argname);
-        fprintf(stderr, "Help for \"%s\": %s\n", argname, help);
+    if (val != NULL) { // value provided but not in the list of accepted values
+        fprintf(stderr, PANDA_MSG_FMT "FAILED to parse value \"%s\" for bool argument \"%s\"\n", PANDA_CORE_NAME, val, argname);
+        panda_plugin_load_failed = true;
+    }
+    else if (required) { // value not provided but required
+        fprintf(stderr, PANDA_MSG_FMT "ERROR finding required bool argument \"%s\"\n", PANDA_CORE_NAME, argname);
+        fprintf(stderr, PANDA_MSG_FMT "help for \"%s\": %s\n", PANDA_CORE_NAME, argname, help);
         panda_plugin_load_failed = true;
     }
 help:
