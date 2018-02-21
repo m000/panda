@@ -364,7 +364,12 @@ void pandalog_taint_query_free(Panda__TaintQuery *tq) {
 }
 
 extern bool taintEnabled;
-int taint2_enabled() {
+bool taint2_enabled() {
     return taintEnabled;
+}
+
+extern bool tainted_pointer;
+bool taint2_tainted_pointer_enabled() {
+    return tainted_pointer;
 }
 

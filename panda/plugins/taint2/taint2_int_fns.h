@@ -5,14 +5,23 @@
 #include <stdbool.h>
 #include "panda/addr.h"
 
-// turns on taint
+// enables taint propagation
 void taint2_enable_taint(void);
 
-// turns on tainted pointer
+// disables taint propagation
+void taint2_disable_taint(void);
+
+// turns on taint propagation on pointer dereferences
 void taint2_enable_tainted_pointer(void);
 
-// returns 1 if taint is on
-int taint2_enabled(void);
+// turns off taint propagation on pointer dereferences
+void taint2_disable_tainted_pointer(void);
+
+// returns true if taint propagation is enabled
+bool taint2_enabled(void);
+
+// returns true if taint propagation on pointer dereferences is enabled
+bool taint2_tainted_pointer_enabled(void);
 
 // label this phys addr in memory with label l, and only label l. any previous
 // labels applied to this address are removed.

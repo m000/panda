@@ -139,6 +139,9 @@ void taint2_enable_tainted_pointer(void) {
     tainted_pointer = true;
 }
 
+void taint2_disable_tainted_pointer(void) {
+    tainted_pointer = false;
+}
 
 void taint2_enable_taint(void) {
     if(taintEnabled) {return;}
