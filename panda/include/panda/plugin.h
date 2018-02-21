@@ -55,10 +55,6 @@ typedef enum panda_cb_type {
     PANDA_CB_MONITOR,           // Monitor callback
     PANDA_CB_CPU_RESTORE_STATE,  // In cpu_restore_state() (fault/exception)
     PANDA_CB_BEFORE_REPLAY_LOADVM,     // at start of replay, before loadvm
-#ifndef CONFIG_SOFTMMU          // *** Only callbacks for QEMU user mode *** //
-    PANDA_CB_USER_BEFORE_SYSCALL, // before system call
-    PANDA_CB_USER_AFTER_SYSCALL,  // after system call (with return value)
-#endif
     PANDA_CB_ASID_CHANGED,           // When CPU asid (address space identifier) changes
     PANDA_CB_REPLAY_HD_TRANSFER,     // in replay, hd transfer
     PANDA_CB_REPLAY_NET_TRANSFER,    // in replay, transfers within network card (currently only E1000)
@@ -398,64 +394,6 @@ typedef union panda_cb {
          unused
     */
     int (*before_loadvm)(void);
-
-
-/* User-mode only callbacks:
-      We currently only support syscalls. If you are particularly
-      concerned about arguments, look to linux-user/syscall.c for how
-      to process them.
-*/
-#ifndef CONFIG_SOFTMMU
-
-    /* Callback ID: PANDA_CB_USER_BEFORE_SYSCALL
-
-       user_before_syscall: Called before a syscall for QEMU user mode
-
-       Arguments:
-        void *cpu_env: pointer to CPUState
-        bitmask_transtbl *fcntl_flags_tbl: syscall flags table from syscall.c
-        int num: syscall number
-        abi_long arg1..arg8: system call arguments
-
-       Return value:
-        unused
-
-       Notes:
-        Some system call arguments need some additional processing, as evident
-        in linux-user/syscall.c.  If your plugin is particularly interested in
-        system call arguments, be sure to process them in similar ways.
-    */
-    int (*user_before_syscall)(void *cpu_env, bitmask_transtbl *fcntl_flags_tbl,
-                               int num, abi_long arg1, abi_long arg2, abi_long
-                               arg3, abi_long arg4, abi_long arg5,
-                               abi_long arg6, abi_long arg7, abi_long arg8);
-
-    /* Callback ID: PANDA_CB_USER_AFTER_SYSCALL
-
-       user_after_syscall: Called after a syscall for QEMU user mode
-
-       Arguments:
-        void *cpu_env: pointer to CPUState
-        bitmask_transtbl *fcntl_flags_tbl: syscall flags table from syscall.c
-        int num: syscall number
-        abi_long arg1..arg8: system call arguments
-        void *p: void pointer used for processing of some arguments
-        abi_long ret: syscall return value
-
-       Return value:
-        unused
-
-       Notes:
-        Some system call arguments need some additional processing, as evident
-        in linux-user/syscall.c.  If your plugin is particularly interested in
-        system call arguments, be sure to process them in similar ways.
-    */
-    int (*user_after_syscall)(void *cpu_env, bitmask_transtbl *fcntl_flags_tbl,
-                              int num, abi_long arg1, abi_long arg2, abi_long
-                              arg3, abi_long arg4, abi_long arg5, abi_long arg6,
-                              abi_long arg7, abi_long arg8, void *p,
-                              abi_long ret);
-#endif // CONFIG_SOFTMMU
 
     /* Callback ID: PANDA_CB_ASID_CHANGED
 

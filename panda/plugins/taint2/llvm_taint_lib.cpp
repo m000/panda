@@ -361,6 +361,9 @@ void PandaTaintVisitor::inlineCall(CallInst *CI) {
         if (!InlineFunction(CI, IFI)) {
             std::cerr << PANDA_MSG "inlining FAILED!" << std::endl;
         }
+        else {
+            std::cerr << PANDA_MSG "inlining OK!" << std::endl;
+        }
     }
 }
 
