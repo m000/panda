@@ -224,8 +224,18 @@ void * panda_get_plugin_by_name(const char *plugin_name) {
     return NULL;
 }
 
+/**
+ * @brief Adds callback to the tail of the callback list and enables it.
+ *
+ * The order of callback registration will determine the order in which
+ * callbacks of the same type will be invoked.
+ *
+ * @note Registering a callback function twice from the same plugin will trigger
+ * an assertion error.
+ */
 void panda_register_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     panda_cb_list *plist_last = NULL;
+
     panda_cb_list *new_list = g_new0(panda_cb_list, 1);
     new_list->entry = cb;
     new_list->owner = plugin;
@@ -233,7 +243,7 @@ void panda_register_callback(void *plugin, panda_cb_type type, panda_cb cb) {
 
     if(panda_cbs[type] != NULL) {
         for(panda_cb_list *plist = panda_cbs[type]; plist != NULL; plist = plist->next) {
-            // the same plugin can register the same callback only once
+            // the same plugin can register the same callback function only once
             assert(!(plist->owner == plugin && (plist->entry.cbaddr) == cb.cbaddr));
             plist_last = plist;
         }
@@ -245,6 +255,15 @@ void panda_register_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     }
 }
 
+/**
+ * @brief Disables the execution of the specified callback.
+ *
+ * This is done by setting the `enabled` flag to `false`. The callback remains
+ * in the callback list, so when it is enabled again it will execute in the same
+ * relative order.
+ *
+ * @note Disabling an unregistered callback will trigger an assertion error.
+ */
 void panda_disable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     bool found = false;
     if (panda_cbs[type] != NULL) {
@@ -262,6 +281,15 @@ void panda_disable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     assert(found);
 }
 
+/**
+ * @brief Enables the execution of the specified callback.
+ *
+ * This is done by setting the `enabled` flag to `true`. After enabling the
+ * callback, it will execute in the same relative order as before having it
+ * disabled.
+ *
+ * @note Enabling an unregistered callback will trigger an assertion error.
+ */
 void panda_enable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     bool found = false;
     if (panda_cbs[type] != NULL) {
@@ -279,10 +307,15 @@ void panda_enable_callback(void *plugin, panda_cb_type type, panda_cb cb) {
     assert(found);
 }
 
-// Remove callbacks for this plugin
+/**
+ * @brief Unregisters all callbacks owned by this plugin.
+ *
+ * The register callbacks are removed from their respective callback lists.
+ * This means that if they are registered again, their execution order may be
+ * different.
+ */
 void panda_unregister_callbacks(void *plugin) {
-    int i;
-    for (i = 0; i < PANDA_CB_LAST; i++) {
+    for (int i = 0; i < PANDA_CB_LAST; i++) {
         panda_cb_list *plist;
         plist = panda_cbs[i];
         bool done = false;
@@ -315,9 +348,15 @@ void panda_unregister_callbacks(void *plugin) {
     }
 }
 
+/**
+ * @brief Enables the specified plugin.
+ *
+ * This works by enabling all the callbacks previously registered by
+ * the plugin. This means that when execution order of the callbacks
+ * is preserved.
+ */
 void panda_enable_plugin(void *plugin) {
-    int i;
-    for (i = 0; i < PANDA_CB_LAST; i++) {
+    for (int i = 0; i < PANDA_CB_LAST; i++) {
         panda_cb_list *plist;
         plist = panda_cbs[i];
         while(plist != NULL) {
@@ -329,9 +368,15 @@ void panda_enable_plugin(void *plugin) {
     }
 }
 
+/**
+ * @brief Disables the specified plugin.
+ *
+ * This works by disabling all the callbacks registered by the plugin.
+ * This means that when the plugin is re-enabled, the callback order
+ * is preserved.
+ */
 void panda_disable_plugin(void *plugin) {
-    int i;
-    for (i = 0; i < PANDA_CB_LAST; i++) {
+    for (int i = 0; i < PANDA_CB_LAST; i++) {
         panda_cb_list *plist;
         plist = panda_cbs[i];
         while(plist != NULL) {
@@ -343,18 +388,14 @@ void panda_disable_plugin(void *plugin) {
     }
 }
 
+/**
+ * @brief Allows to navigate the callback linked list skipping disabled callbacks.
+ */
 panda_cb_list* panda_cb_list_next(panda_cb_list* plist) {
-    // Allows to navigate the callback linked list skipping disabled callbacks
-    panda_cb_list* node = plist->next;
-    if (node == NULL) {
-        return node;
+    for (panda_cb_list* node = plist->next; plist != NULL; plist = plist->next) {
+        if (!node || node->enabled) return node;
     }
-
-    if (node->enabled) {
-        return node;
-    } else {
-        return panda_cb_list_next(node);
-    }
+    return NULL;
 }
 
 bool panda_flush_tb(void) {
