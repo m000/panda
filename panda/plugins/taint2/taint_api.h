@@ -3,8 +3,8 @@
 
 extern "C" {
 // For the C API to taint accessible from other plugins
-void taint2_enable_taint(void);
-void taint2_disable_taint(void);
+void taint2_enable_taint(bool);
+void taint2_disable_taint(bool);
 void taint2_enable_tainted_pointer(void);
 void taint2_disable_tainted_pointer(void);
 bool taint2_enabled(void);
@@ -14,8 +14,7 @@ void taint2_label_reg(int reg_num, int offset, uint32_t l) ;
 void taint2_label_ram_additive(uint64_t pa, uint32_t l);
 void taint2_label_reg_additive(int reg_num, int offset, uint32_t l);
 void taint2_add_taint_ram_pos(CPUState *cpu, uint64_t addr, uint32_t length, uint32_t start_label);
-void taint2_add_taint_ram_single_label(CPUState *cpu, uint64_t addr,
-    uint32_t length, long label);
+void taint2_add_taint_ram_single_label(CPUState *cpu, uint64_t addr, uint32_t length, long label);
 void taint2_delete_ram(uint64_t pa);
 void taint2_delete_reg(int reg_num, int offset);
 

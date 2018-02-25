@@ -6,10 +6,10 @@
 #include "panda/addr.h"
 
 // enables taint propagation
-void taint2_enable_taint(void);
+void taint2_enable_taint(bool clear_taint);
 
 // disables taint propagation
-void taint2_disable_taint(void);
+void taint2_disable_taint(bool clear_taint);
 
 // turns on taint propagation on pointer dereferences
 void taint2_enable_tainted_pointer(void);

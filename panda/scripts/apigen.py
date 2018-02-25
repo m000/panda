@@ -7,7 +7,7 @@ import pdb
 import pycparser
 import subprocess
 
-KNOWN_TYPES = ['int', 'double', 'float', 'char', 'short', 'long',
+KNOWN_TYPES = ['bool', 'int', 'double', 'float', 'char', 'short', 'long',
                'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t']
 
 

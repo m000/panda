@@ -84,7 +84,8 @@ int asid_changed_callback(CPUState *env, target_ulong oldval, target_ulong newva
 
 }
 
-ShadowState *shadow = nullptr; // Global shadow memory
+// Global shadow memory
+ShadowState *shadow = nullptr;
 
 // Pointer passed in init_plugin()
 void *taint2_plugin = nullptr;
@@ -127,6 +128,8 @@ int phys_mem_read_callback(CPUState *cpu, target_ulong pc, target_ulong addr,
     return 0;
 }
 
+#if 0
+// not used
 void verify(void) {
     llvm::Module *mod = tcg_llvm_ctx->getModule();
     std::string err;
@@ -134,6 +137,7 @@ void verify(void) {
         std::cerr << PANDA_MSG << err << std::endl;
     }
 }
+#endif
 
 void taint2_enable_tainted_pointer(void) {
     tainted_pointer = true;
@@ -143,11 +147,25 @@ void taint2_disable_tainted_pointer(void) {
     tainted_pointer = false;
 }
 
-void taint2_enable_taint(void) {
+/**
+ * @brief +++
+ *
+ * @note +++
+ */
+void taint2_enable_taint(bool clear_taint) {
     if(taintEnabled) {return;}
     std::cerr << PANDA_MSG << __FUNCTION__ << std::endl;
     taintEnabled = true;
     panda_cb pcb;
+
+    // initialize/clear shadow memory
+    if (clear_taint && shadow) {
+        delete shadow;
+        shadow = nullptr;
+    }
+    if (!shadow) {
+        shadow = new ShadowState();
+    }
 
     pcb.before_block_exec_invalidate_opt = before_block_exec_invalidate_opt;
     panda_register_callback(taint2_plugin, PANDA_CB_BEFORE_BLOCK_EXEC_INVALIDATE_OPT, pcb);
@@ -158,15 +176,13 @@ void taint2_enable_taint(void) {
     pcb.asid_changed = asid_changed_callback;
     panda_register_callback(taint2_plugin, PANDA_CB_ASID_CHANGED, pcb);
 
-    panda_enable_precise_pc(); //before_block_exec requires precise_pc for panda_current_asid
+    // before_block_exec requires precise_pc for panda_current_asid
+    panda_enable_precise_pc();
 
     if (!execute_llvm){
         panda_enable_llvm();
     }
     panda_enable_llvm_helpers();
-
-    if (shadow) delete shadow;
-    shadow = new ShadowState();
 
     // Initialize memlog.
     memset(&taint_memlog, 0, sizeof(taint_memlog));
@@ -185,7 +201,6 @@ void taint2_enable_taint(void) {
     // Add the taint analysis pass to our taint pass manager
     PTFP = new llvm::PandaTaintFunctionPass(shadow, &taint_memlog);
     FPM->add(PTFP);
-
     FPM->doInitialization();
 
     // Populate module with helper function taint ops
@@ -208,11 +223,33 @@ void taint2_enable_taint(void) {
     std::cerr << "Done verifying module. Running..." << std::endl;
 }
 
-void taint2_disable_taint(void) {
+void taint2_disable_taint(bool clear_taint) {
     if(!taintEnabled) {return;}
     std::cerr << PANDA_MSG << __FUNCTION__ << std::endl;
     taintEnabled = false;
     //panda_cb pcb;
+
+    // initialize/clear shadow memory
+    if (clear_taint && shadow) {
+        delete shadow;
+        shadow = nullptr;
+    }
+    if (!shadow) {
+        shadow = new ShadowState();
+    }
+
+#if 0
+    // WIP
+    // https://github.com/panda-re/panda/blob/master/panda/docs/manual.md#useful-panda-functions
+    pcb.before_block_exec_invalidate_opt = before_block_exec_invalidate_opt;
+    panda_disable_callback(taint2_plugin, PANDA_CB_BEFORE_BLOCK_EXEC_INVALIDATE_OPT, pcb);
+    pcb.phys_mem_before_read = phys_mem_read_callback;
+    panda_disable_callback(taint2_plugin, PANDA_CB_PHYS_MEM_BEFORE_READ, pcb);
+    pcb.phys_mem_before_write = phys_mem_write_callback;
+    panda_disable_callback(taint2_plugin, PANDA_CB_PHYS_MEM_BEFORE_WRITE, pcb);
+    pcb.asid_changed = asid_changed_callback;
+    panda_disable_callback(taint2_plugin, PANDA_CB_ASID_CHANGED, pcb);
+#endif
 }
 
 // Execute taint ops
@@ -247,7 +284,7 @@ void arm_hypercall_callback(CPUState *cpu){
         if (!taintEnabled){
             printf("Taint plugin: Label operation detected @ %lu\n", rr_get_guest_instr_count());
             printf("Enabling taint processing\n");
-            taint2_enable_taint();
+            taint2_enable_taint(true);
         }
 
         // FIXME: do labeling here.
@@ -522,27 +559,34 @@ bool before_block_exec_invalidate_opt(CPUState *cpu, TranslationBlock *tb) {
 
 bool init_plugin(void *self) {
     taint2_plugin = self;
-    panda_cb pcb;
+
+    // set required panda options
     panda_enable_memcb();
     panda_disable_tb_chaining();
+
+    // hook taint2 callbacks
+    panda_cb pcb;
     pcb.guest_hypercall = guest_hypercall_callback;
     panda_register_callback(self, PANDA_CB_GUEST_HYPERCALL, pcb);
+#if 0
+    // also registered by taint2_enable_taint() - registering twice triggers assertion error
+    // keep this commented until we figure out which one we should eliminate
     pcb.before_block_exec_invalidate_opt = before_block_exec_invalidate_opt;
     panda_register_callback(self, PANDA_CB_BEFORE_BLOCK_EXEC_INVALIDATE_OPT, pcb);
+#endif
 
+    // parse arguments
     panda_arg_list *args = panda_get_args("taint2");
-
     tainted_pointer = !panda_parse_bool_opt(args, "no_tp", "track taint through pointer dereference");
     std::cerr << PANDA_MSG "propagation via pointer dereference " << PANDA_FLAG_STATUS(tainted_pointer) << std::endl;
-
     inline_taint = panda_parse_bool_opt(args, "inline", "inline taint operations");
     std::cerr << PANDA_MSG "taint operations inlining " << PANDA_FLAG_STATUS(inline_taint) << std::endl;
-
     optimize_llvm = panda_parse_bool_opt(args, "opt", "run LLVM optimization on taint");
     std::cerr << PANDA_MSG "llvm optimizations " << PANDA_FLAG_STATUS(optimize_llvm) << std::endl;
-
     debug_taint = panda_parse_bool_opt(args, "debug", "enable taint debugging");
+    std::cerr << PANDA_MSG "taint debugging " << PANDA_FLAG_STATUS(debug_taint) << std::endl;
 
+    // load dependencies
     panda_require("callstack_instr");
     assert(init_callstack_instr_api());
 
