@@ -127,7 +127,7 @@ bool PandaTaintFunctionPass::doInitialization(Module &M) {
     std::string bitcode(dirname(exe));
     free(exe);
     bitcode.append("/panda/plugins/panda_taint2_ops.bc");
-    std::cout << "taint2: Linking taint ops from " << bitcode << std::endl;
+    std::cout << PANDA_MSG "Linking taint ops from " << bitcode << "." << std::endl;
 
     LLVMContext &ctx = M.getContext();
     SMDiagnostic Err;
@@ -244,8 +244,6 @@ bool PandaTaintFunctionPass::doInitialization(Module &M) {
     //ADD_MAPPING(label_set_union);
     //ADD_MAPPING(label_set_singleton);
 #undef ADD_MAPPING
-
-    std::cout << "taint2: Done initializing taint transformation." << std::endl;
 
     return true;
 }

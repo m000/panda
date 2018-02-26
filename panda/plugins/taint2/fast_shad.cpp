@@ -30,6 +30,8 @@ PANDAENDCOMMENT */
 #include <set>
 #include <string>
 
+bool track_taint_state = false;
+
 typedef const std::set<uint32_t> *LabelSetP;
 
 FastShad::FastShad(std::string name, uint64_t labelsets) : _name(name) {
