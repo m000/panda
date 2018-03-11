@@ -293,24 +293,16 @@ int get_callers(target_ulong callers[], int n, CPUState* cpu) {
 // writes an entry to the pandalog with callstack info (and instr count and pc)
 Panda__CallStack *pandalog_callstack_create() {
     assert (pandalog);
-    CPUState *cpu = first_cpu;
-    CPUArchState* env = (CPUArchState*)cpu->env_ptr;
-    uint32_t n = 0;
+    CPUArchState* env = (CPUArchState*)first_cpu->env_ptr;
     std::vector<stack_entry> &v = callstacks[get_stackid(env)];
-    auto rit = v.rbegin();
-    for (/*no init*/; rit != v.rend() && n < CALLSTACK_MAX_SIZE; ++rit) {
-        n ++;
-    }
-    Panda__CallStack *cs = (Panda__CallStack *) malloc (sizeof(Panda__CallStack));
+
+    Panda__CallStack *cs = (Panda__CallStack *)malloc(sizeof(Panda__CallStack));
     *cs = PANDA__CALL_STACK__INIT;
-    cs->n_addr = n;
-    cs->addr = (uint64_t *) malloc (sizeof(uint64_t) * n);
-    v = callstacks[get_stackid(env)];
-    rit = v.rbegin();
-    uint32_t i=0;
-    for (/*no init*/; rit != v.rend() && n < CALLSTACK_MAX_SIZE; ++rit, ++i) {
-        cs->addr[i] = rit->pc;
-    }
+    cs->n_addr = std::min((uint32_t)v.size(), (uint32_t)CALLSTACK_MAX_SIZE);
+    cs->addr = (uint64_t *)malloc(cs->n_addr * sizeof(uint64_t));
+
+    for (uint32_t i=0; i<cs->n_addr; i++) { cs->addr[i] = v[i].pc; }
+
     return cs;
 }
 
@@ -406,3 +398,5 @@ bool init_plugin(void *self) {
 
 void uninit_plugin(void *self) {
 }
+
+/* vim: set tabstop=4 softtabstop=4 expandtab ft=cpp: */
