@@ -64,16 +64,18 @@ void get_prog_point(CPUState *env, prog_point *p);
 
 There are also functions available for getting callstack information in [pandalog format](docs/pandalog.md):
 
-```C
+```C++
 // Create pandalog message for callstack info
 Panda__CallStack *pandalog_callstack_create(void);
 
-```C
 // Create pandalog message for callstack info
 Panda__CallStack *pandalog_callstack_create(void);
 
 // Free a Panda__CallStack struct
 void pandalog_callstack_free(Panda__CallStack *cs);
+
+// fill pandalog message with callstack info (C++ only)
+void pandalog_callstack_fill(std::unique_ptr<panda::LogEntry> ple);
 ```
 
 Example

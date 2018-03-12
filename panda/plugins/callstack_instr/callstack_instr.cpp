@@ -35,7 +35,13 @@ PANDAENDCOMMENT */
 
 #include "callstack_instr.h"
 
+// PandaLog C++ interface
+#include "panda/plog-cc.hpp"
+#include "plog.pb.h"
+
 extern "C" {
+
+// PandaLog C interface
 #include "panda/plog.h"
 
 #include "callstack_instr_int_fns.h"
@@ -290,7 +296,9 @@ int get_callers(target_ulong callers[], int n, CPUState* cpu) {
 
 
 #define CALLSTACK_MAX_SIZE 16
-// writes an entry to the pandalog with callstack info (and instr count and pc)
+/**
+ * @brief Creates a pandalog entry with the callstack information.
+ */
 Panda__CallStack *pandalog_callstack_create() {
     assert (pandalog);
     CPUArchState* env = (CPUArchState*)first_cpu->env_ptr;
@@ -307,9 +315,27 @@ Panda__CallStack *pandalog_callstack_create() {
 }
 
 
+/**
+ * @brief Frees a pandalog entry containing callstack information.
+ */
 void pandalog_callstack_free(Panda__CallStack *cs) {
     free(cs->addr);
     free(cs);
+}
+
+
+/**
+ * @brief Fills callstack information in the supplied pandalog entry.
+ */
+void pandalog_callstack_fill(std::unique_ptr<panda::LogEntry> ple) {
+    assert(pandalog);
+    CPUArchState* env = (CPUArchState*)first_cpu->env_ptr;
+    std::vector<stack_entry> &v = callstacks[get_stackid(env)];
+
+    uint32_t n_addr = std::min((uint32_t)v.size(), (uint32_t)CALLSTACK_MAX_SIZE);
+    auto ple_call_stack = ple->mutable_call_stack();
+
+    for (uint32_t i=0; i<n_addr; i++) { ple_call_stack->add_addr(v[i].pc); }
 }
 
 
