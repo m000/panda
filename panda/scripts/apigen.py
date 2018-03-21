@@ -86,7 +86,6 @@ def generate_code(functions, module, includes):
             }}
         """).format(**fn)
 
-
     ppp_imports = "\n    ".join(['IMPORT_PPP(module, {name})'.format(**fn) for fn in functions])
 
     code += textwrap.dedent("""
