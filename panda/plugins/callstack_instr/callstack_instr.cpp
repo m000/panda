@@ -324,21 +324,6 @@ void pandalog_callstack_free(Panda__CallStack *cs) {
 }
 
 
-/**
- * @brief Fills callstack information in the supplied pandalog entry.
- */
-void pandalog_callstack_fill(std::unique_ptr<panda::LogEntry> ple) {
-    assert(pandalog);
-    CPUArchState* env = (CPUArchState*)first_cpu->env_ptr;
-    std::vector<stack_entry> &v = callstacks[get_stackid(env)];
-
-    uint32_t n_addr = std::min((uint32_t)v.size(), (uint32_t)CALLSTACK_MAX_SIZE);
-    auto ple_call_stack = ple->mutable_call_stack();
-
-    for (uint32_t i=0; i<n_addr; i++) { ple_call_stack->add_addr(v[i].pc); }
-}
-
-
 int get_functions(target_ulong functions[], int n, CPUState* cpu) {
     CPUArchState* env = (CPUArchState*)cpu->env_ptr;
     std::vector<target_ulong> &v = function_stacks[get_stackid(env)];

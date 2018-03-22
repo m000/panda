@@ -73,9 +73,6 @@ Panda__CallStack *pandalog_callstack_create(void);
 
 // Free a Panda__CallStack struct
 void pandalog_callstack_free(Panda__CallStack *cs);
-
-// fill pandalog message with callstack info (C++ only)
-void pandalog_callstack_fill(std::unique_ptr<panda::LogEntry> ple);
 ```
 
 Example
