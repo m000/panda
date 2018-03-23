@@ -282,16 +282,17 @@ int after_block_exec(CPUState* cpu, TranslationBlock *tb) {
     return 1;
 }
 
-// Public interface implementation
-int get_callers(target_ulong callers[], int n, CPUState* cpu) {
+
+/**
+ * @brief Fills preallocated buffer \p callers with up to \p n call addresses.
+ */
+uint32_t get_callers(target_ulong callers[], uint32_t n, CPUState* cpu) {
     CPUArchState* env = (CPUArchState*)cpu->env_ptr;
     std::vector<stack_entry> &v = callstacks[get_stackid(env)];
-    auto rit = v.rbegin();
-    int i = 0;
-    for (/*no init*/; rit != v.rend() && i < n; ++rit, ++i) {
-        callers[i] = rit->pc;
-    }
-    return i;
+
+    n = std::min((uint32_t)v.size(), n);
+    for (uint32_t i=0; i<n; i++) { callers[i] = v[i].pc; }
+    return n;
 }
 
 
@@ -300,7 +301,7 @@ int get_callers(target_ulong callers[], int n, CPUState* cpu) {
  * @brief Creates a pandalog entry with the callstack information.
  */
 Panda__CallStack *pandalog_callstack_create() {
-    assert (pandalog);
+    assert(pandalog);
     CPUArchState* env = (CPUArchState*)first_cpu->env_ptr;
     std::vector<stack_entry> &v = callstacks[get_stackid(env)];
 
@@ -324,18 +325,16 @@ void pandalog_callstack_free(Panda__CallStack *cs) {
 }
 
 
-int get_functions(target_ulong functions[], int n, CPUState* cpu) {
+/**
+ * @brief Fills preallocated buffer \p functions with up to \p n function addresses.
+ */
+uint32_t get_functions(target_ulong functions[], uint32_t n, CPUState* cpu) {
     CPUArchState* env = (CPUArchState*)cpu->env_ptr;
     std::vector<target_ulong> &v = function_stacks[get_stackid(env)];
-    if (v.empty()) {
-        return 0;
-    }
-    auto rit = v.rbegin();
-    int i = 0;
-    for (/*no init*/; rit != v.rend() && i < n; ++rit, ++i) {
-        functions[i] = *rit;
-    }
-    return i;
+
+    n = std::min((uint32_t)v.size(), n);
+    for (uint32_t i=0; i<n; i++) { functions[i] = v[i]; }
+    return n;
 }
 
 void get_prog_point(CPUState* cpu, prog_point *p) {
