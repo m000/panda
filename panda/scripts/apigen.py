@@ -156,14 +156,14 @@ def generate_api(interface_file, ext_file, extra_gcc_args):
             continue
 
         # attempt to parse as function prototype
+        # if successful, a tuple of (rtype, fn_name, args_with_types) is returned
         func_spec = split_fun_prototype(line)
 
-        if func_spec is None:                   # not a function prototype
+        if func_spec is None:       # not a function prototype
             continue
+        else:                       # append argument names func_spec tuple
+            func_spec += (arglist[func_spec[1]],)
 
-        # func_spec is returned tuple of (rtype, fn_name, args_with_types)
-        # we also append a list with the argument names
-        func_spec += (arglist[func_spec[1]],)
         functions.append(func_spec)
 
     # Plugin interface file will look like [...]/plugins/<name>/<name>_int.h
