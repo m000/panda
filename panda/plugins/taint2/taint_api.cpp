@@ -54,9 +54,9 @@ static void start_debugging() {
     extern int qemu_loglevel;
     if (!debug_asid) {
         debug_asid = panda_current_asid(first_cpu);
-	std::cerr << std::hex << std::showbase;
-	std::cerr << PANDA_MSG "debug mode for asid " << debug_asid << " " << PANDA_FLAG_STATUS(debug_asid) << std::endl;
-	std::cerr << std::dec << std::noshowbase;
+    std::cerr << std::hex << std::showbase;
+    std::cerr << PANDA_MSG "debug mode for asid " << debug_asid << " " << PANDA_FLAG_STATUS(debug_asid) << std::endl;
+    std::cerr << std::dec << std::noshowbase;
     }
     qemu_loglevel |= CPU_LOG_TAINT_OPS | CPU_LOG_LLVM_IR | CPU_LOG_TB_IN_ASM | CPU_LOG_EXEC;
 }
@@ -116,7 +116,7 @@ static void tp_label_additive(Addr a, uint32_t l) {
     if (new_ls) {
         tp_labelset_put(a, new_ls);
         labels_applied.insert(l);
-	}
+    }
 }
 
 // retrieve ls for this addr
@@ -171,12 +171,12 @@ void taint2_add_taint_ram_pos(CPUState *cpu, uint64_t addr, uint32_t length, uin
     for (unsigned i = 0; i < length; i++){
         hwaddr pa = panda_virt_to_phys(cpu, addr + i);
         if (pa == (hwaddr)(-1)) {
-	    std::cerr << std::hex << std::showbase;
-	    std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
-	    std::cerr << std::dec << std::noshowbase;
+        std::cerr << std::hex << std::showbase;
+        std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
+        std::cerr << std::dec << std::noshowbase;
             continue;
         }
-	std::cerr << PANDA_MSG "adding positional taint label " << i+start_label << std::endl;
+    std::cerr << PANDA_MSG "adding positional taint label " << i+start_label << std::endl;
         label_byte(cpu, addr+i, i+start_label);
     }
 }
@@ -188,11 +188,11 @@ void taint2_add_taint_ram_single_label(CPUState *cpu, uint64_t addr,
     for (unsigned i = 0; i < length; i++){
         hwaddr pa = panda_virt_to_phys(cpu, addr + i);
         if (pa == (hwaddr)(-1)) {
-	    std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
+        std::cerr << PANDA_MSG "can't label address " << (addr+i) << ": mmu hasn't mapped virt->phys" << std::endl;
             continue;
         }
         //taint2_label_ram(pa, label);
-	std::cerr << PANDA_MSG "adding single taint label " << label << std::endl;
+    std::cerr << PANDA_MSG "adding single taint label " << label << std::endl;
         label_byte(cpu, addr+i, label);
     }
 }
@@ -242,8 +242,8 @@ extern "C" uint32_t taint2_query_set_a(Addr a, uint32_t **out, uint32_t *outsz) 
     // allocate/reallocate buffer
     uint32_t sz = s->size();
     if (*out == nullptr || *outsz < sz) {
-	*out = (uint32_t *)realloc(*out, sz*sizeof(uint32_t));
-	*outsz = sz;
+        *out = (uint32_t *)realloc(*out, sz*sizeof(uint32_t));
+        *outsz = sz;
     }
 
     // fill buffer
@@ -420,3 +420,4 @@ bool taint2_tainted_pointer_enabled() {
     return tainted_pointer;
 }
 
+/* vim: set tabstop=4 softtabstop=4 expandtab: */
