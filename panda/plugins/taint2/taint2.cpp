@@ -130,7 +130,7 @@ void taint2_disable_tainted_pointer(void) {
  */
 void taint2_enable_taint(bool clear_taint) {
     if(taintEnabled) {return;}
-    std::cerr << PANDA_MSG << __FUNCTION__ << " " << clear_taint << " " << (void *)shadow << std::endl;
+    std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
     panda_cb pcb;
 
     // initialize/clear shadow memory
@@ -212,7 +212,7 @@ void taint2_enable_taint(bool clear_taint) {
 
 void taint2_disable_taint(bool clear_taint) {
     if(!taintEnabled) {return;}
-    std::cerr << PANDA_MSG << __FUNCTION__ << " " << clear_taint << " " << (void *)shadow << std::endl;
+    std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
     taintEnabled = false;
 
     // actually disabling taint has to be deferred to the end of the block
@@ -223,6 +223,7 @@ void taint2_disable_taint(bool clear_taint) {
 // Execute taint ops
 int after_block_exec(CPUState *cpu, TranslationBlock *tb) {
     if (taintJustDisabled){
+        std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
         taintJustDisabled = false;
         execute_llvm = 0;
         generate_llvm = 0;
