@@ -63,6 +63,8 @@ typedef enum panda_cb_type {
     PANDA_CB_REPLAY_HANDLE_PACKET,   // in replay, packet in / out
     PANDA_CB_AFTER_MACHINE_INIT,     // Right after the machine is initialized, before any code runs
 
+    PANDA_CB_TOP_LOOP,               // at top of loop that manages emulation.  good place to take a snapshot
+
     PANDA_CB_LAST
 } panda_cb_type;
 
@@ -505,13 +507,25 @@ typedef union panda_cb {
     */
     void (*after_machine_init)(CPUState *env);
 
+    /* Callback ID:     PANDA_CB_TOP_LOOP
+
+       top_loop: Called at the top of the loop that manages emulation.
+
+       Arguments:
+        void *cpu_env: pointer to CPUState
+
+       Return value:
+        unused
+     */
+    void (*top_loop)(CPUState *env);
+
     /* Dummy union member.
 
        This union only contains function pointers.
        Using the cbaddr member one can compare if two union instances
-       point to the same callback function.
-       In principle any other member could be used instead. However
-       cbaddr provides neutral semantics for the comparisson.
+       point to the same callback function. In principle, any other
+       member could be used instead.
+       However, cbaddr provides neutral semantics for the comparisson.
     */
     void (* cbaddr)(void);
 } panda_cb;

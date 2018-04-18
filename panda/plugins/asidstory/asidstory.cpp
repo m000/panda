@@ -124,6 +124,7 @@ uint64_t min_instr;
 uint64_t max_instr = 0;
 double scale = 0;
 
+bool debug = false;
  
 #define MILLION 1000000
 //#define NAMELEN 10
@@ -258,13 +259,17 @@ static inline bool pid_ok(int pid) {
 
 
 static inline bool check_proc(OsiProc *proc) {
-    if (proc && pid_ok(proc->pid)) {
+    if (!proc) return false;
+    if (pid_ok(proc->pid)) {
         int l = strlen(proc->name);
         for (int i=0; i<l; i++) 
-            if (!isprint(proc->name[i]))
+            if (!isprint(proc->name[i])) 
                 return false;
     }
-    if (strlen(proc->name) < 3) return false;
+    // 'ls', 'ps', 'nc' all are 2 characters
+    // we don't believe 1-character cmd names
+    // are there any?
+    if (strlen(proc->name) < 2) return false;
     return true;
 }
 
@@ -315,8 +320,9 @@ void saw_proc(CPUState *env, OsiProc *proc, uint64_t instr_count) {
 
 // proc was seen from instr i1 to i2
 void saw_proc_range(CPUState *env, OsiProc *proc, uint64_t i1, uint64_t i2) {
-    printf ("saw_proc_range [%s,%d] (%" PRId64 " ..%" PRId64 ")\n", 
-            proc->name, (int) proc->pid, i1, i2);
+    if (debug) 
+        printf ("saw_proc_range [%s,%d] (%" PRId64 " ..%" PRId64 ")\n", 
+                proc->name, (int) proc->pid, i1, i2);
 
      uint64_t step = floor(1.0 / scale) / 2;
     // assume that last process was running from last asid change to basically now
@@ -339,12 +345,18 @@ int asidstory_asid_changed(CPUState *env, target_ulong old_asid, target_ulong ne
     // some fool trying to use asidstory for boot? 
     if (new_asid == 0) return 0;
     
+    uint64_t curr_instr = rr_get_guest_instr_count();
+    
+	if (debug) printf ("\nasid changed @ %lu\n", curr_instr);
+    
     if (process_mode == Process_known) {
+        
+        if (debug) printf ("process was known for last asid interval\n");
+        
         // this means we knew the process during the last asid interval
         // so we'll record that info for later display
-        uint64_t curr_instr = rr_get_guest_instr_count();
         saw_proc_range(env, first_good_proc, instr_first_good_proc, curr_instr - 100);
-
+        
         // just trying to arrange it so that we only spit out asidstory plot
         // for a cell once.
         int cell = curr_instr * scale; 
@@ -355,9 +367,14 @@ int asidstory_asid_changed(CPUState *env, target_ulong old_asid, target_ulong ne
         }
         if (anychange) spit_asidstory();
     }    
+    else {
+        if (debug) printf ("process was not known for last asid interval %lu %lu\n", instr_first_good_proc, curr_instr);
+    }
     
-    process_mode = Process_unknown;
+    process_mode = Process_unknown;   
     asid_at_asid_changed = new_asid;
+    
+    if (debug) printf ("asid_changed: process_mode unknown\n");
 
     return 0;
 }
@@ -385,6 +402,7 @@ static inline bool process_same(OsiProc *proc1, OsiProc *proc2) {
 }
 
 
+
 // before every bb, mostly just trying to figure out current proc 
 int asidstory_before_block_exec(CPUState *env, TranslationBlock *tb) {
 
@@ -392,7 +410,7 @@ int asidstory_before_block_exec(CPUState *env, TranslationBlock *tb) {
     if (max_instr == 0) {
         max_instr = replay_get_total_num_instructions();
         scale = ((double) num_cells) / ((double) max_instr); 
-        printf("max_instr = %" PRId64 "\n", max_instr);
+        if (debug) printf("max_instr = %" PRId64 "\n", max_instr);
     }
 
     // all this is about figuring out if and when we know the current process
@@ -402,6 +420,7 @@ int asidstory_before_block_exec(CPUState *env, TranslationBlock *tb) {
         break;
     }
     case Process_unknown: {
+        if (debug) printf("before_bb: process_mode unknown\n");
         OsiProc *current_proc = get_current_process(env);    
         if (check_proc(current_proc)) {
             // first good proc 
@@ -409,6 +428,7 @@ int asidstory_before_block_exec(CPUState *env, TranslationBlock *tb) {
             instr_first_good_proc = rr_get_guest_instr_count(); 
             process_mode = Process_suspicious;
             process_counter = PROCESS_GOOD_NUM;
+            if (debug) printf ("before_bb: process_mode suspicious.  %d %s\n", (int) current_proc->pid, current_proc->name);
         }
         break;
     }
@@ -417,16 +437,20 @@ int asidstory_before_block_exec(CPUState *env, TranslationBlock *tb) {
         if (check_proc(current_proc) && (process_same(current_proc, first_good_proc))) {
             // proc good and also stable
             process_counter--;
+            if (debug) printf ("before_bb: counter = %d\n", process_counter);
             if (process_counter == 0) {
                 // process deemed good enough
                 process_mode = Process_known;
                 PPP_RUN_CB(on_proc_change, env, asid_at_asid_changed, first_good_proc);
+                if (debug) printf ("before_bb: process_mode known\n");
             }
         }
-        else 
+        else {
             // process either not good or not stable -- revert
             process_mode = Process_unknown;                    
-        break;
+            if (debug) printf ("before_bb: process_mode unknown\n");
+        }
+        break;        
     }
     default: {}
     }
