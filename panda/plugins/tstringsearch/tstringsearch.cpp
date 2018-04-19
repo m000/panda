@@ -61,7 +61,7 @@ int tstringsearch_enable_taint(CPUState *env, target_ulong pc) {
     if (!taint2_enabled()) {
         if (ic + 100 > enable_taint_instr_count) {
             printf ("enabling taint at instr count %" PRIu64 "\n", ic);
-            taint2_enable_taint();           
+            taint2_enable_taint(true);
         }
     }
     return 0;

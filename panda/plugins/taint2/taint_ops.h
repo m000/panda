@@ -12,14 +12,14 @@
  *
 PANDAENDCOMMENT */
 
-#ifndef __TAINT_OPS_H_
-#define __TAINT_OPS_H_
+#ifndef TAINT_OPS_H
+#define TAINT_OPS_H
 
 #include <cstdint>
+#include "fast_shad.h"
+#include "taint_ops.h"
 
 namespace llvm { class Instruction; }
-
-class FastShad;
 
 extern "C" {
 

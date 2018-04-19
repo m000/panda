@@ -16,21 +16,17 @@ PANDAENDCOMMENT */
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cinttypes>
+#include <cerrno>
 #include <sys/mman.h>
-
-#include "taint_defines.h"
-#include "fast_shad.h"
-
 #include <set>
 #include <string>
-
-typedef const std::set<uint32_t> *LabelSetP;
+#include "taint2_defines.h"
+#include "fast_shad.h"
+#include "label_set.h"
 
 FastShad::FastShad(std::string name, uint64_t labelsets) : _name(name) {
     uint64_t bytes = sizeof(TaintData) * labelsets;

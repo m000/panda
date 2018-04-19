@@ -232,7 +232,7 @@ int guest_hypercall_callback(CPUState *cpu) {
         if (!taintEnabled) {
             printf("Taint plugin: Label operation detected @ %lu\n", rr_get_guest_instr_count());
             printf("Enabling taint processing\n");
-            taint2_enable_taint();
+            taint2_enable_taint(true);
         }
         // FIXME: do labeling here.
     }
