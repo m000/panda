@@ -12,8 +12,13 @@
  *
 PANDAENDCOMMENT */
 
-#ifndef __SHAD_DIR_H_
-#define __SHAD_DIR_H_
+#ifndef SHAD_DIR_H
+#define SHAD_DIR_H
+
+#include <cstdint>
+#include "label_set.h"
+
+#define SD_DO_NOTHING {do {} while (0);}
 
 // struct for a page
 typedef struct sd_page_struct {
@@ -23,7 +28,6 @@ typedef struct sd_page_struct {
   int32_t num_non_empty;
 } SdPage;
 
-
 typedef struct sd_table_struct {
   // pointer to more tables
   struct sd_table_struct **table;
@@ -32,6 +36,4 @@ typedef struct sd_table_struct {
   // count non-empty pages in this table
   int32_t num_non_empty;
 } SdTable;
-
-#define SD_DO_NOTHING {do {} while (0);}
 #endif

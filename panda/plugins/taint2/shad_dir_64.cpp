@@ -29,10 +29,8 @@ PANDAENDCOMMENT */
 #include <cstdint>
 #include <cstdlib>
 #include <cassert>
-
 #include "shad_dir_64.h"
-
-typedef const std::set<uint32_t> *LabelSetP;
+#include "label_set.h"
 
 // 64-bit addresses
 // create a new table

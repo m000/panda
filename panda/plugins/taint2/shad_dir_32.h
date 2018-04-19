@@ -12,11 +12,12 @@
  *
 PANDAENDCOMMENT */
 
-#ifndef __SHAD_DIR_32_H
-#define __SHAD_DIR_32_H
+#ifndef SHAD_DIR_32_H
+#define SHAD_DIR_32_H
 
-#include "label_set.h"
+#include <cstdint>
 #include "shad_dir.h"
+#include "label_set.h"
 
 // the top-level directory is an array of pointers to page tables
 typedef struct SdDir32 {
