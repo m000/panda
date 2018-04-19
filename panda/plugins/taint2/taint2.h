@@ -12,29 +12,25 @@
  *
  PANDAENDCOMMENT */
 
-#ifndef __TAINT2_H__
-#define __TAINT2_H__
+#ifndef TAINT2_H
+#define TAINT2_H
 
 #include <cstdint>
-
 #include <map>
 #include <set>
-
-#include "panda/plugin.h"
-
+#include "taint2_defines.h"
 #include "fast_shad.h"
 #include "shad_dir_32.h"
 #include "shad_dir_64.h"
-#include "taint_defines.h"
-
-typedef const std::set<uint32_t> *LabelSetP;
+#include "label_set.h"
+#include "panda/plugin.h"
 
 typedef void (*on_branch2_t) (Addr, uint64_t);
 typedef void (*on_indirect_jump_t) (Addr, uint64_t);
 typedef void (*on_taint_change_t) (Addr, uint64_t);
 typedef void (*on_ptr_load_t) (Addr, uint64_t, uint64_t);
 typedef void (*on_ptr_store_t) (Addr, uint64_t, uint64_t);
-
+typedef void (*panda_callback_modify_t) (void *plugin, panda_cb_type type, panda_cb cb);
 
 struct ShadowState {
     uint64_t prev_bb; // label for previous BB.
@@ -88,5 +84,4 @@ Addr make_maddr(uint64_t a);
 Addr make_laddr(uint64_t a, uint64_t o);
 Addr make_greg(uint64_t r, uint16_t off);
 }
-
 #endif
