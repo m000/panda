@@ -60,6 +60,7 @@ extern void taint2_state_changed(FastShad *fast_shad, uint64_t addr, uint64_t si
 #define taint_log(...) {}
 #define taint_log_labels(shad, src, size) {}
 #endif
+
 struct TaintData {
     LabelSetP ls;
     // Taint compute number.

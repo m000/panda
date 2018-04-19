@@ -43,7 +43,6 @@ extern "C" {
 
 // PandaLog C interface
 #include "panda/plog.h"
-
 #include "callstack_instr_int_fns.h"
 
 bool translate_callback(CPUState* cpu, target_ulong pc);
@@ -57,7 +56,6 @@ void uninit_plugin(void *);
 
 PPP_PROT_REG_CB(on_call);
 PPP_PROT_REG_CB(on_ret);
-
 }
 
 PPP_CB_BOILERPLATE(on_call);
