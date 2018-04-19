@@ -15,23 +15,22 @@ PANDAENDCOMMENT */
 #ifndef __FAST_SHAD_H
 #define __FAST_SHAD_H
 
-#include <cassert>
 #include <cstdint>
-#include <string>
+#include <cassert>
+#include <cstring>
+#include "label_set.h"
+#include "taint2_defines.h"
 
 #ifdef TAINT2_DEBUG
 #include "qemu/osdep.h"
 #include "qemu/log.h"
+extern int qemu_loglevel;
 #endif
-
-#include "taint_defines.h"
-#include "label_set.h"
 
 class FastShad;
 
 extern "C" {
-extern bool track_taint_state;
-extern void taint_state_changed(FastShad *fast_shad, uint64_t addr, uint64_t size);
+extern void taint2_state_changed(FastShad *fast_shad, uint64_t addr, uint64_t size);
 }
 
 #define CPU_LOG_TAINT_OPS (1 << 28)
@@ -40,7 +39,6 @@ extern void taint_state_changed(FastShad *fast_shad, uint64_t addr, uint64_t siz
 #define tassert(cond) assert((cond))
 #define taint_log(...) qemu_log_mask(CPU_LOG_TAINT_OPS, ## __VA_ARGS__);
 #define taint_log_labels(shad, src, size) \
-    extern int qemu_loglevel; \
     if (qemu_loglevel & CPU_LOG_TAINT_OPS) { \
         bool tainted = false; \
         for (int __i = 0; __i < size; __i++) { \
@@ -145,13 +143,11 @@ public:
         tassert(src + size <= shad_src->size);
 
         bool change = false;
-        if (track_taint_state && (shad_dest->range_tainted(dest, size) ||
-                    shad_src->range_tainted(src, size)))
+        if (taint2_state.track_taint_state && (shad_dest->range_tainted(dest, size) || shad_src->range_tainted(src, size)))
             change = true;
 
         memcpy(shad_dest->get_td_p(dest), shad_src->get_td_p(src), size * sizeof(TaintData));
-
-        if (change) taint_state_changed(shad_dest, dest, size);
+        if (change) taint2_state_changed(shad_dest, dest, size);
     }
 
     // Remove taint.
@@ -160,11 +156,11 @@ public:
         tassert(addr + remove_size <= size);
 
         bool change = false;
-        if (track_taint_state && range_tainted(addr, remove_size))
+        if (taint2_state.track_taint_state && range_tainted(addr, remove_size))
             change = true;
-        memset(get_td_p(addr), 0, remove_size * sizeof(TaintData));
 
-        if (change) taint_state_changed(this, addr, remove_size);
+        memset(get_td_p(addr), 0, remove_size * sizeof(TaintData));
+        if (change) taint2_state_changed(this, addr, remove_size);
     }
 
     // Query. NULL if untainted.
@@ -199,7 +195,7 @@ public:
         bool change = !(td == *get_td_p(addr));
         labels[addr] = td;
 
-        if (change) taint_state_changed(this, addr, 1);
+        if (change) taint2_state_changed(this, addr, 1);
     }
 
     inline uint32_t query_tcn(uint64_t addr) {

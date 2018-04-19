@@ -35,6 +35,7 @@ PANDAENDCOMMENT */
 #include "panda/plugin_plugin.h"
 #include "panda/tcg-llvm.h"
 
+#include "taint2_defines.h"
 #include "fast_shad.h"
 #include "llvm_taint_lib.h"
 #include "taint_ops.h"
@@ -42,8 +43,6 @@ PANDAENDCOMMENT */
 
 extern "C" {
 #include "libgen.h"
-
-extern bool tainted_pointer;
 
 PPP_PROT_REG_CB(on_branch2);
 PPP_CB_BOILERPLATE(on_branch2);
@@ -56,7 +55,6 @@ PPP_CB_BOILERPLATE(on_ptr_load);
 
 PPP_PROT_REG_CB(on_ptr_store);
 PPP_CB_BOILERPLATE(on_ptr_store);
-
 }
 
 extern const char *qemu_file;
@@ -127,7 +125,7 @@ bool PandaTaintFunctionPass::doInitialization(Module &M) {
     std::string bitcode(dirname(exe));
     free(exe);
     bitcode.append("/panda/plugins/panda_taint2_ops.bc");
-    std::cout << "taint2: Linking taint ops from " << bitcode << std::endl;
+    std::cout << PANDA_MSG "Linking taint ops from " << bitcode << "." << std::endl;
 
     LLVMContext &ctx = M.getContext();
     SMDiagnostic Err;
@@ -245,8 +243,6 @@ bool PandaTaintFunctionPass::doInitialization(Module &M) {
     //ADD_MAPPING(label_set_singleton);
 #undef ADD_MAPPING
 
-    std::cout << "taint2: Done initializing taint transformation." << std::endl;
-
     return true;
 }
 
@@ -353,13 +349,15 @@ ConstantInt *PandaTaintVisitor::valueSizeValue(const Value *V) {
     return const_uint64(V->getContext(), getValueSize(V));
 }
 
-bool inline_taint = false;
 void PandaTaintVisitor::inlineCall(CallInst *CI) {
     assert(CI);
-        if (inline_taint) {
+    if (taint2_state.llvm_inline) {
         InlineFunctionInfo IFI;
         if (!InlineFunction(CI, IFI)) {
-            printf("Inlining failed!\n");
+            std::cerr << PANDA_MSG "inlining FAILED!" << std::endl;
+        }
+        else {
+            std::cerr << PANDA_MSG "inlining OK!" << std::endl;
         }
     }
 }
@@ -1195,7 +1193,7 @@ void PandaTaintVisitor::visitCallInst(CallInst &I) {
             return;
         } else if (ldFuncs.count(calledName) > 0) {
             Value *ptr = I.getArgOperand(1);
-            if (tainted_pointer && !isa<Constant>(ptr)) {
+            if (taint2_state.tainted_pointer && !isa<Constant>(ptr)) {
                 insertTaintPointer(I, ptr, &I, false);
             } else {
                 insertTaintCopy(I, llvConst, &I, memConst, NULL, getValueSize(&I));
@@ -1204,7 +1202,7 @@ void PandaTaintVisitor::visitCallInst(CallInst &I) {
         } else if (stFuncs.count(calledName) > 0) {
             Value *ptr = I.getArgOperand(1);
             Value *val = I.getArgOperand(2);
-            if (tainted_pointer && !isa<Constant>(ptr)) {
+            if (taint2_state.tainted_pointer && !isa<Constant>(ptr)) {
                 insertTaintPointer(I, ptr, val, true /* is_store */ );
             } else if (isa<Constant>(val)) {
                 insertTaintDelete(I, memConst, NULL, const_uint64(ctx, getValueSize(val)));

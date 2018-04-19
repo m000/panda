@@ -1,16 +1,12 @@
-extern "C" {
-#include <sys/mman.h>
-}
-
+#include <cstdint>
 #include <cassert>
-
+#include <sys/mman.h>
 #include <map>
 #include <vector>
 #include <set>
 #include <unordered_set>
 #include <unordered_map>
 #include <functional>
-
 #include "label_set.h"
 
 template<typename T>

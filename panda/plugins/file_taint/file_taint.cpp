@@ -166,7 +166,7 @@ void open_enter(CPUState *cpu, target_ulong pc, std::string filename, int32_t fl
         the_asid = panda_current_asid(cpu);
         if (enable_taint_on_open && !no_taint && !taint2_enabled()) {
             uint64_t ins = rr_get_guest_instr_count();
-            taint2_enable_taint();
+            taint2_enable_taint(true);
             if (debug) printf ("file_taint: enabled taint2 @ ins  %" PRId64 "\n", ins);
         }
     }
@@ -441,7 +441,7 @@ int file_taint_enable(CPUState *cpu, target_ulong pc) {
     if (!no_taint && !taint2_enabled()) {
         uint64_t ins = rr_get_guest_instr_count();
         if (ins > first_instr) {
-            taint2_enable_taint();
+            taint2_enable_taint(true);
             if (debug) printf (" enabled taint2 @ ins  %" PRId64 "\n", ins);
         }
     }
@@ -594,7 +594,7 @@ bool init_plugin(void *self) {
         assert(init_taint2_api());
         if (!enable_taint_on_open && first_instr == 0) {
             if (debug) printf("file_taint: turning on taint at replay beginning\n");
-            taint2_enable_taint();
+            taint2_enable_taint(true);
         }
     }
 
