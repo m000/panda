@@ -3,8 +3,9 @@
  * @brief Implementation of the `taint2` plugin API.
  */
 #include <iostream>
-#include "taint_api.h"
+#include "taint2_defines.h"
 #include "taint2.h"
+#include "taint_api.h"
 
 Addr make_maddr(uint64_t a) {
     Addr ma;
@@ -33,7 +34,6 @@ Addr make_greg(uint64_t r, uint16_t off) {
     return a;
 }
 
-extern bool debug_taint;
 target_ulong debug_asid = 0;
 
 // Implements taint2:debug plugin arg. Turns on -d llvm_ir,taint_ops,in_asm,exec
@@ -61,31 +61,29 @@ static void start_debugging() {
     qemu_loglevel |= CPU_LOG_TAINT_OPS | CPU_LOG_LLVM_IR | CPU_LOG_TB_IN_ASM | CPU_LOG_EXEC;
 }
 
-extern ShadowState *shadow;
-
 // returns a copy of the labelset associated with a or NULL if none.
 static LabelSetP tp_labelset_get(const Addr &a) {
-    assert(shadow);
-    auto loc = shadow->query_loc(a);
+    assert(taint2_state.shadow);
+    auto loc = taint2_state.shadow->query_loc(a);
     return loc.first ? loc.first->query(loc.second) : nullptr;
 }
 
 static TaintData tp_query_full(const Addr &a) {
-    assert(shadow);
-    auto loc = shadow->query_loc(a);
+    assert(taint2_state.shadow);
+    auto loc = taint2_state.shadow->query_loc(a);
     return loc.first ? loc.first->query_full(loc.second) : TaintData();
 }
 
 // untaint -- discard label set associated with a
 static void tp_delete(const Addr &a) {
-    assert(shadow);
-    auto loc = shadow->query_loc(a);
+    assert(taint2_state.shadow);
+    auto loc = taint2_state.shadow->query_loc(a);
     if (loc.first) loc.first->remove(loc.second, 1);
 }
 
 static void tp_labelset_put(const Addr &a, LabelSetP ls) {
-    assert(shadow);
-    auto loc = shadow->query_loc(a);
+    assert(taint2_state.shadow);
+    auto loc = taint2_state.shadow->query_loc(a);
     if (loc.first) loc.first->set_full(loc.second, TaintData(ls));
 }
 
@@ -95,7 +93,7 @@ std::set<uint32_t> labels_applied;
 // label -- associate label l, and only label l, with address a. any previous
 // labels applied to the address are removed.
 static void tp_label(Addr a, uint32_t l) {
-    if (debug_taint) start_debugging();
+    if (taint2_state.debug) start_debugging();
 
     LabelSetP ls = label_set_singleton(l);
     tp_labelset_put(a, ls);
@@ -105,7 +103,7 @@ static void tp_label(Addr a, uint32_t l) {
 // label -- add label l to the label set of address a. previous labels applied
 // to the address are not removed.
 static void tp_label_additive(Addr a, uint32_t l) {
-    if (debug_taint) start_debugging();
+    if (taint2_state.debug) start_debugging();
 
     LabelSetP ls_at_a = tp_labelset_get(a);     // get the set at addr a
     LabelSetP ls_of_l = label_set_singleton(l); // get new set with label l
@@ -335,7 +333,7 @@ void taint2_labelset_reg_iter(int reg_num, int offset, int (*app)(uint32_t el, v
 }
 
 void taint2_track_taint_state(void) {
-    track_taint_state = true;
+    taint2_state.track_taint_state = true;
 }
 
 #define MAX_EL_ARR_IND 1000000
@@ -410,14 +408,12 @@ void pandalog_taint_query_free(Panda__TaintQuery *tq) {
     }
 }
 
-extern bool taintEnabled;
 bool taint2_enabled() {
-    return taintEnabled;
+    return taint2_state.enabled;
 }
 
-extern bool tainted_pointer;
 bool taint2_tainted_pointer_enabled() {
-    return tainted_pointer;
+    return taint2_state.tainted_pointer;
 }
 
 /* vim: set tabstop=4 softtabstop=4 expandtab: */
