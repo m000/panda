@@ -19,28 +19,16 @@ PANDAENDCOMMENT */
 #include <cstdio>
 #include <cstdarg>
 #include <cassert>
-
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
-
 #include "panda/plugin.h"
 #include "panda/plugin_plugin.h"
-
+#include "taint2_defines.h"
 #include "fast_shad.h"
-#include "label_set.h"
 #include "taint_ops.h"
 
-uint64_t labelset_count;
-
-extern "C" {
-
-extern bool tainted_pointer;
-
-}
-
 // Memlog functions.
-
 uint64_t taint_memlog_pop(taint2_memlog *taint_memlog) {
     uint64_t result = taint_memlog->ring[taint_memlog->idx];
     taint_memlog->idx = (taint_memlog->idx + TAINT2_MEMLOG_SIZE - 1) % TAINT2_MEMLOG_SIZE;;
@@ -244,7 +232,7 @@ void taint_pointer(
     }
 
     // query taint on pointer either being read or written
-    if (tainted_pointer & TAINT_POINTER_MODE_CHECK) {
+    if (taint2_state.tainted_pointer & TAINT_POINTER_MODE_CHECK) {
         taint_pointer_run(src, ptr, dest, (bool) is_store, size);
     }
 
