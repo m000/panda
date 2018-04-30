@@ -22,7 +22,6 @@
 #endif
 
 #include <iostream>
-
 #include "panda/plugin.h"
 #include "panda/tcg-llvm.h"
 
@@ -75,15 +74,29 @@ llvm::PandaTaintFunctionPass *PTFP = nullptr;
 // Taint memlog
 static taint2_memlog taint_memlog;
 
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Registered callback implementations
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+
 /**
- * @brief Initialize taint analysis for the first time in the replay.
+ * @brief First-time initialization of taint analysis.
+ *
+ * XXX: if tcg_llvm_ctx is reinitialized (i.e. panda_disable_llvm and then panda_enable_llvm)
+ * then these steps have to be executed again!
  */
 static void inline __taint2_initialize() {
     if (taint2_state.initialized) { return; }
     std::string err;
     std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
 
+    // ???
     memset(&taint_memlog, 0, sizeof(taint_memlog));
+
+    if (!execute_llvm) { panda_enable_llvm(); }
     panda_enable_llvm_helpers();
 
     llvm::Module *mod = tcg_llvm_ctx->getModule();
@@ -110,7 +123,7 @@ static void inline __taint2_initialize() {
     std::cerr << PANDA_MSG "Done processing helper functions for taint." << std::endl;
 
     // Verifying llvm module.
-    if(verifyModule(*mod, llvm::AbortProcessAction, &err)){
+    if(verifyModule(*mod, llvm::AbortProcessAction, &err)) {
         std::cerr << PANDA_MSG << err << std::endl;
         exit(1);
     }
@@ -134,15 +147,10 @@ static void inline __taint2_enable() {
     if (taint2_state.enabled) {
         return;
     }
-    else if (!taint2_state.initialized) {
-        __taint2_initialize();
-        cb_modify = panda_register_callback;
-    }
-    else {
-        cb_modify = panda_enable_callback;
-    }
 
 #if 0
+    // XXX: taint2_state.shadow is passed to PTFP.
+    //      if we delete it, we need to reinitialize PTFP.
     if (clear_taint || taint2_state.clearOnEnable) {
         taint2_state.clearOnEnable = false;
         if (taint2_state.shadow) {
@@ -154,6 +162,14 @@ static void inline __taint2_enable() {
 
     if (!taint2_state.shadow) {
         taint2_state.shadow = new ShadowState();
+    }
+
+    if (!taint2_state.initialized) {
+        __taint2_initialize();
+        cb_modify = panda_register_callback;
+    }
+    else {
+        cb_modify = panda_enable_callback;
     }
 
     // before_block_exec requires precise_pc for panda_current_asid
@@ -168,9 +184,6 @@ static void inline __taint2_enable() {
     pcb.asid_changed = asid_changed_callback;
     cb_modify(taint2_state.plugin, PANDA_CB_ASID_CHANGED, pcb);
     pcb.after_block_exec = after_block_exec;
-    cb_modify(taint2_state.plugin, PANDA_CB_AFTER_BLOCK_EXEC, pcb);
-
-    if (!execute_llvm) { panda_enable_llvm(); }
 
     taint2_state.enabled = true;
 }
@@ -194,20 +207,34 @@ static void inline __taint2_disable() {
     panda_disable_callback(taint2_state.plugin, PANDA_CB_PHYS_MEM_BEFORE_READ, pcb);
     pcb.phys_mem_before_write = phys_mem_write_callback;
     panda_disable_callback(taint2_state.plugin, PANDA_CB_PHYS_MEM_BEFORE_WRITE, pcb);
-    pcb.asid_changed = asid_changed_callback;
-    panda_disable_callback(taint2_state.plugin, PANDA_CB_ASID_CHANGED, pcb);
     pcb.after_block_exec = after_block_exec;
     panda_disable_callback(taint2_state.plugin, PANDA_CB_AFTER_BLOCK_EXEC, pcb);
+    pcb.asid_changed = asid_changed_callback;
+    panda_disable_callback(taint2_state.plugin, PANDA_CB_ASID_CHANGED, pcb);
 
     //???panda_disable_precise_pc();
     //???if (execute_llvm) { panda_disable_llvm(); }
 }
 
+
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Registered callback implementations
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+/**
+ * @brief Callback for memory writes. Pushes addres to the memlog ring buffer.
+ */
 int phys_mem_write_callback(CPUState *cpu, target_ulong pc, target_ulong addr, target_ulong size, void *buf) {
     taint_memlog_push(&taint_memlog, addr);
     return 0;
 }
 
+/**
+ * @brief Callback for memory reads. Pushes addres to the memlog ring buffer.
+ */
 int phys_mem_read_callback(CPUState *cpu, target_ulong pc, target_ulong addr, target_ulong size) {
     taint_memlog_push(&taint_memlog, addr);
     return 0;
@@ -220,44 +247,10 @@ bool before_block_exec_invalidate_opt(CPUState *cpu, TranslationBlock *tb) {
     return false;
 }
 
-// Execute taint ops
 int after_block_exec(CPUState *cpu, TranslationBlock *tb) {
     if (taint2_state.disablePending){
     }
     return 0;
-}
-
-
-
-void taint2_enable_tainted_pointer(void) {
-    taint2_state.tainted_pointer = true;
-}
-
-void taint2_disable_tainted_pointer(void) {
-    taint2_state.tainted_pointer = false;
-}
-
-/**
- * @brief Enables taint propagation.
- *
- * @note Calling this function early (e.g. from the `init_plugin()`) function
- * of your plugin will result to a segfault. The earliest point you can use
- * this api call is the `after_machine_init` callback.
- */
-void taint2_enable_taint(bool clear_taint) {
-}
-
-/**
- * @brief Disables taint propagation.
- */
-void taint2_disable_taint(bool clear_taint) {
-    if(!taint2_state.enabled) {return;}
-    std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
-    taint2_state.enabled = false;
-
-    // actually disabling taint has to be deferred to the end of the block
-    taint2_state.disablePending = true;
-    taint2_state.clearOnEnable = clear_taint;
 }
 
 /**
@@ -285,6 +278,52 @@ void taint2_state_changed(FastShad *fast_shad, uint64_t shad_addr, uint64_t size
     } else return;
 
     PPP_RUN_CB(on_taint_change, addr, size);
+}
+
+
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Plugin calls
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+/**
+ * @brief Enable taint propagation on pointer dereference.
+ */
+void taint2_enable_tainted_pointer(void) {
+    taint2_state.tainted_pointer = true;
+}
+
+/**
+ * @brief Disable taint propagation on pointer dereference.
+ */
+void taint2_disable_tainted_pointer(void) {
+    taint2_state.tainted_pointer = false;
+}
+
+/**
+ * @brief Enables taint propagation.
+ *
+ * @note Calling this function early (e.g. from the `init_plugin()`) function
+ * of your plugin will result to a segfault. The earliest point you can use
+ * this api call is the `after_machine_init` callback.
+ */
+void taint2_enable_taint(bool clear_taint) {
+    __taint2_enable();
+}
+
+/**
+ * @brief Disables taint propagation.
+ */
+void taint2_disable_taint(bool clear_taint) {
+    if(!taint2_state.enabled) {return;}
+    std::cerr << PANDA_MSG << __FUNCTION__ << "@" << rr_get_guest_instr_count() << std::endl;
+    taint2_state.enabled = false;
+
+    // actually disabling taint has to be deferred to the end of the block
+    taint2_state.disablePending = true;
+    taint2_state.clearOnEnable = clear_taint;
 }
 
 /**
