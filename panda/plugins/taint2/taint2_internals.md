@@ -43,7 +43,7 @@ enabled.
   * PANDA\_CB\_BEFORE\_BLOCK\_EXEC\_INVALIDATE\_OPT:before\_block\_exec\_invalidate\_opt():
     This callback is used to determine whether the basic block which is about
     to be executed has to be retranslated. This is a simple check for a pointer
-    (checks `tb->llvm_tc_ptr` - see panda/docs/manual.md, include/exec/exec-all.h).
+    (checks `tb->llvm\_tc\_ptr` - see panda/docs/manual.md, include/exec/exec-all.h).
   * PANDA\_CB\_PHYS\_MEM\_BEFORE\_READ:phys\_mem\_read\_callback():
     Pushes address to memlog.
   * PANDA\_CB\_PHYS\_MEM\_BEFORE\_WRITE:phys\_mem\_write\_callback():
@@ -52,7 +52,7 @@ enabled.
     This is a hook for actions that have to be postponed until after the end
     of the executing block. This includes actually disabling taint analysis.
   * PANDA\_CB\_ASID\_CHANGED:asid\_changed\_callback():
-    Only used for debugging. Changes log level if the new ASID matches `debug_asid`.
+    Only used for debugging. Changes log level if the new ASID matches `debug\_asid`.
 
 ### \_\_taint2\_initialize()
 
@@ -62,7 +62,9 @@ enabled.
   * Also, adds a new function pass to the FPM of tcg\_llvm\_ctx.
     Can this pass be removed to disable taint propagation?
 
+## llvm\_taint\_lib.[ch]
 
-<!-- Use this in vim to escape underscores:
-s/\([^\\]\)\_/\1\\_/g
+<!--
+Use this in vim to escape underscores: s/\v([^\\)])_/\1\\_/g
+Underscores in verbatim have to be unescaped manually.
 -->

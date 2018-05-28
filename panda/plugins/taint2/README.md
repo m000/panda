@@ -35,16 +35,15 @@ conjunction with our record/replay system.  This will allow a fast recording of
 the execution of interest without using the plugin, and subsequent replays of
 the recording with the heavyweight taint analysis enabled.
 
-There are many ways to perform taint labeling and querying.  The primary method
+There are many ways to perform taint labeling and querying. The primary method
 we currently use is to make hypercalls from the guest into the hypervisor with
-the parameters.  The implementation of the hypercall can be seen in
-`panda/qemu/panda_plugins/taint/taint.cpp` at the guest hypercall callback.  An
-easy way to label and query from the guest (with a gcc compiler) can be seen in
-`panda/qemu/panda_plugins/taint/tests/include/gcc/panda_mark.h`.  Additionally,
-examples using `panda_mark.h` are in the `tests` directory.  For Windows guests,
-the utilities included in `panda/qemu/panda_tools/pirate_utils` can be
-used to label files (Note: only a subset of the functionality available in
-those tools has been ported to the taint plugin).
+the parameters.
+The implementation of the hypercall can be seen in `taint2_hypercalls.*` files.
+The hypercall can be turned off by disabling the TAINT2\_HYPERCALLS preprocessor
+flag in the `Makefile`.
+An easy way to label and query from the guest (with a gcc compiler) can
+be seen in `tests/include/gcc/panda_mark.h`. Additionally, examples using
+`panda_mark.h` are in the `tests` directory.
 
 There are a number of command line arguments available to the taint plugin:
 

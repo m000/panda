@@ -75,12 +75,12 @@ llvm::PandaTaintFunctionPass *PTFP = nullptr;
 static taint2_memlog taint_memlog;
 
 
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-// Registered callback implementations
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
 
 /**
  * @brief First-time initialization of taint analysis.
@@ -240,6 +240,10 @@ int phys_mem_read_callback(CPUState *cpu, target_ulong pc, target_ulong addr, ta
     return 0;
 }
 
+/**
+ * @brief Called to determine whether the basic block which is about
+ * to be executed has to be retranslated.
+ */
 bool before_block_exec_invalidate_opt(CPUState *cpu, TranslationBlock *tb) {
     if (taint2_state.enabled) {
         return tb->llvm_tc_ptr ? false : true /* invalidate! */;
@@ -247,11 +251,24 @@ bool before_block_exec_invalidate_opt(CPUState *cpu, TranslationBlock *tb) {
     return false;
 }
 
+/**
+ * @brief Called at the end of a basic block to enable/disable taint,
+ * if needed. These actions cannot be executed at once, and one has to
+ * wait until the end of the current basic block to safely execute them.
+ */
 int after_block_exec(CPUState *cpu, TranslationBlock *tb) {
     if (taint2_state.disablePending){
     }
     return 0;
 }
+
+
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Supplied callback implementations
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
 
 /**
  * @brief Wrapper for running the registered `on_taint_change` PPP callbacks.

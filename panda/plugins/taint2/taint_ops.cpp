@@ -31,7 +31,7 @@ PANDAENDCOMMENT */
 // Memlog functions.
 uint64_t taint_memlog_pop(taint2_memlog *taint_memlog) {
     uint64_t result = taint_memlog->ring[taint_memlog->idx];
-    taint_memlog->idx = (taint_memlog->idx + TAINT2_MEMLOG_SIZE - 1) % TAINT2_MEMLOG_SIZE;;
+    taint_memlog->idx = (taint_memlog->idx + TAINT2_MEMLOG_SIZE - 1) % TAINT2_MEMLOG_SIZE;
 
     taint_log("memlog_pop: %lx\n", result);
     return result;

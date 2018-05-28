@@ -27,11 +27,16 @@ bool is_irrelevant(int64_t offset);
 
 // taint2_memlog
 //
-// This will replace the dynamic log, since we now need to track values for
-// a much shorter period of time. Instead of full-fledged file logging, we're
-// just going to use a ring buffer.
-
-// Initialize this to 0.
+// This is a ring buffer for storing memory locations for which the taint
+// may have to be updated. Addresses are pushed to the buffer by the
+// PANDA_CB_PHYS_MEM_BEFORE_READ and PANDA_CB_PHYS_MEM_BEFORE_WRITE callbacks
+// registered by taint2.
+// Taint is updated per instruction. Since LLVM instructions may have up
+// to 2 memory operands, the size of the ring buffer is also set to 2.
+//
+// Notes:
+//   The buffer has to be initialized to 0 before use.
+//   It may make sense to encapsulate this buffer within PandaTaintFunctionPass.
 #define TAINT2_MEMLOG_SIZE 2
 typedef struct taint2_memlog {
     uint64_t ring[TAINT2_MEMLOG_SIZE];
