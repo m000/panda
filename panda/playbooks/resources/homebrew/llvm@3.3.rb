@@ -33,42 +33,6 @@ class LlvmAT33 < Formula
     end
   end
 
-  head do
-    url "http://llvm.org/git/llvm.git", :branch => "release_33"
-
-    resource "clang" do
-      url "http://llvm.org/git/clang.git", :branch => "release_33"
-    end
-
-    resource "clang-tools-extra" do
-      url "http://llvm.org/git/clang-tools-extra.git", :branch => "release_33"
-    end
-
-    resource "compiler-rt" do
-      url "http://llvm.org/git/compiler-rt.git", :branch => "release_33"
-    end
-
-    resource "polly" do
-      url "http://llvm.org/git/polly.git", :branch => "release_33"
-    end
-
-    resource "libcxx" do
-      url "http://llvm.org/git/libcxx.git", :branch => "release_33"
-    end
-  end
-
-  if MacOS.version <= :snow_leopard
-    # Not tarball release for libc++abi yet. Using latest branch.
-    resource "libcxxabi" do
-      url "http://llvm.org/git/libcxxabi.git", :branch => "release_32"
-    end
-
-    resource "clang-unwind-patch" do
-      url "http://llvm.org/viewvc/llvm-project/cfe/trunk/lib/Headers/unwind.h?r1=172666&r2=189535&view=patch", :using => :nounzip
-      sha256 "3e54779e8764cd6c8c4547fbea23838d4af7f3da5eee214e361db4c13d715456"
-    end
-  end
-
   # Fix Makefile bug concerning MacOSX >= 10.10
   # See: http://llvm.org/bugs/show_bug.cgi?id=19951
   patch :DATA
@@ -87,11 +51,6 @@ class LlvmAT33 < Formula
   depends_on "libffi" => :recommended
   depends_on "cloog" => :optional
 
-  # version suffix
-  def ver
-   "3.3"
-  end
-
   # LLVM installs its own standard library which confuses stdlib checking.
   cxxstdlib_check :skip
 
@@ -103,13 +62,6 @@ class LlvmAT33 < Formula
     (buildpath/"tools/clang/tools/extra").install resource("clang-tools-extra")
     (buildpath/"projects/compiler-rt").install resource("compiler-rt") if build.with? "asan"
 
-    if MacOS.version <= :snow_leopard
-      buildpath.install resource("clang-unwind-patch")
-      cd clang_buildpath do
-        system "patch -p2 -N < #{buildpath}/unwind.h"
-      end
-    end
-
     if build.universal?
       ENV.permit_arch_flags
       ENV["UNIVERSAL"] = "1"
@@ -119,12 +71,10 @@ class LlvmAT33 < Formula
     ENV["REQUIRES_RTTI"] = "1"
     ENV["PKG_CONFIG_PATH"] = "#{Formula["isl@0.18"].lib}/pkgconfig:#{Formula["cloog"].lib}/pkgconfig:#{Formula["libffi"].lib}/pkgconfig"
 
-    install_prefix = lib/"llvm-#{ver}"
-
 
     ### configuration script arguments ###############################
     args = [
-      "--prefix=#{install_prefix}",
+      "--prefix=#{prefix}",
       "--enable-optimized",
       "--disable-bindings",
       "--enable-libcpp",
@@ -188,75 +138,6 @@ class LlvmAT33 < Formula
     system "./configure", *args
     system "make", "VERBOSE=1"
     system "make", "VERBOSE=1", "install"
-
-    if MacOS.version <= :snow_leopard
-      libcxxabi_buildpath.install resource("libcxxabi")
-
-      cd libcxxabi_buildpath/"lib" do
-        # Set rpath to save user from setting DYLD_LIBRARY_PATH
-        inreplace "buildit", "-install_name /usr/lib/libc++abi.dylib", "-install_name #{install_prefix}/usr/lib/libc++abi.dylib"
-
-        ENV["CC"] = "#{install_prefix}/bin/clang"
-        ENV["CXX"] = "#{install_prefix}/bin/clang++"
-        ENV["TRIPLE"] = "*-apple-*"
-        system "./buildit"
-        (install_prefix/"usr/lib").install "libc++abi.dylib"
-        cp libcxxabi_buildpath/"include/cxxabi.h", install_prefix/"lib/c++/v1"
-      end
-
-      # Snow Leopard make rules hardcode libc++ and libc++abi path.
-      # Change to Cellar path here.
-      inreplace "#{libcxx_buildpath}/lib/buildit" do |s|
-        s.gsub! "-install_name /usr/lib/libc++.1.dylib", "-install_name #{install_prefix}/usr/lib/libc++.1.dylib"
-        s.gsub! "-Wl,-reexport_library,/usr/lib/libc++abi.dylib", "-Wl,-reexport_library,#{install_prefix}/usr/lib/libc++abi.dylib"
-      end
-
-      # On Snow Leopard and older system libc++abi is not shipped but
-      # needed here. It is hard to tweak environment settings to change
-      # include path as libc++ uses a custom build script, so just
-      # symlink the needed header here.
-      ln_s libcxxabi_buildpath/"include/cxxabi.h", libcxx_buildpath/"include"
-    end
-
-    # Putting libcxx in projects only ensures that headers are installed.
-    # Manually "make install" to actually install the shared libs.
-    libcxx_make_args = [
-      # Use the built clang for building
-      "CC=#{install_prefix}/bin/clang",
-      "CXX=#{install_prefix}/bin/clang++",
-      # Properly set deployment target, which is needed for Snow Leopard
-      "MACOSX_DEPLOYMENT_TARGET=#{MacOS.version}",
-      # The following flags are needed so it can be installed correctly.
-      "DSTROOT=#{install_prefix}",
-      "SYMROOT=#{libcxx_buildpath}",
-    ]
-
-    system "make", "-C", libcxx_buildpath, "install", *libcxx_make_args
-
-    (share/"clang-#{ver}/tools").install Dir["tools/clang/tools/scan-{build,view}"]
-
-    (lib/"python2.7/site-packages").install "bindings/python/llvm" => "llvm-#{ver}",
-                                            clang_buildpath/"bindings/python/clang" => "clang-#{ver}"
-
-    Dir.glob(install_prefix/"bin/*") do |exec_path|
-      basename = File.basename(exec_path)
-      bin.install_symlink exec_path => "#{basename}-#{ver}"
-    end
-
-    Dir.glob(install_prefix/"share/man/man1/*") do |manpage|
-      basename = File.basename(manpage, ".1")
-      man1.install_symlink manpage => "#{basename}-#{ver}.1"
-    end
-  end
-
-  def caveats; <<-EOS.undent
-    Extra tools are installed in #{opt_share}/clang-#{ver}
-
-    To link to libc++, something like the following is required:
-      CXX="clang++-#{ver} -stdlib=libc++"
-      CXXFLAGS="$CXXFLAGS -nostdinc++ -I#{opt_lib}/llvm-#{ver}/lib/c++/v1"
-      LDFLAGS="$LDFLAGS -L#{opt_lib}/llvm-#{ver}/lib"
-    EOS
   end
 
   test do
