@@ -78,6 +78,7 @@ class LlvmAT33 < Formula
   option "without-shared", "Don't build LLVM as a shared library"
   option "with-all-targets", "Build all target backends"
   option "with-assertions", "Slows down LLVM, but provides more debug information"
+  option "without-build", "Only create a tarball of the source without compiling"
 
   keg_only :versioned_formula
   depends_on "pkg-config" => :build
@@ -164,6 +165,26 @@ class LlvmAT33 < Formula
 
 
     ### build and install ############################################
+    # Make a tarball, show configuration and fail.
+    if build.include? "without-build"
+      ver = "#{version}".split("-")[0]
+      srctarball = "#{var}/llvm-#{ver}.src.tar.gz"
+      configcmd = "#{var}/llvm-#{ver}-configure.sh"
+      system "tar", "-zcf", "#{srctarball}", '-C', (buildpath/".."), "."
+      File.open(configcmd, 'w'){ |f|
+        f.write("#!/usr/bin/env bash\n")
+        ENV.each do |k, v|
+          f.write(sprintf("export %s=\"%s\"\n", k, v))
+        end
+        f.write(sprintf("./configure %s\n", args.join(" \\\n\t")))
+        File.chmod(0755, configcmd)
+      }
+      ohai "Source tarball: #{srctarball}"
+      ohai "Configuration script: #{configcmd}"
+      ohai "All done. Aborting."
+      system "false"
+    end
+
     system "./configure", *args
     system "make", "VERBOSE=1"
     system "make", "VERBOSE=1", "install"
