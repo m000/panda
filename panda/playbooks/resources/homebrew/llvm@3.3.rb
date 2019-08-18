@@ -1,7 +1,7 @@
-class Llvm33 < Formula
+class LlvmAT33 < Formula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
-  revision 1
+  revision 3
 
   stable do
     url "http://llvm.org/releases/3.3/llvm-3.3.src.tar.gz"
@@ -31,13 +31,6 @@ class Llvm33 < Formula
       url "http://llvm.org/releases/3.3/libcxx-3.3.src.tar.gz"
       sha256 "c403ed18d2992719c794cdd760dc87a948b62a7c2a07beb39eb984dfeb1679f1"
     end
-  end
-
-  bottle do
-    rebuild 1
-    sha256 "5c6a3bb358f33665ec6dbd47edcfcdf654b7137be6034a3f1c5c11e7fee61af2" => :yosemite
-    sha256 "e7ecd19ec38bf9572af232d3374432d8dda9722fab39bab76afdc884c63ed789" => :mavericks
-    sha256 "eeec3d9cfe71b297a28ee1a9b25d27154c19bb3e25f6fdbc5599ae891175790f" => :mountain_lion
   end
 
   head do
@@ -84,32 +77,27 @@ class Llvm33 < Formula
   option "with-asan", "Include support for -faddress-sanitizer (from compiler-rt)"
   option "without-shared", "Don't build LLVM as a shared library"
   option "with-all-targets", "Build all target backends"
-  option "without-assertions", "Speeds up LLVM, but provides less debug information"
+  option "with-assertions", "Slows down LLVM, but provides more debug information"
 
-  deprecated_option "disable-shared" => "without-shared"
-  deprecated_option "all-targets" => "with-all-targets"
-  deprecated_option "disable-assertions" => "without-assertions"
-
-  depends_on "gmp4"
-  depends_on "isl011"
-  depends_on "cloog018"
+  keg_only :versioned_formula
+  depends_on "pkg-config" => :build
+  depends_on "gmp"
+  depends_on "isl@0.11"
   depends_on "libffi" => :recommended
+  depends_on "cloog" => :optional
 
   # version suffix
   def ver
-    "3.3"
+   "3.3"
   end
 
   # LLVM installs its own standard library which confuses stdlib checking.
   cxxstdlib_check :skip
 
   def install
-    clang_buildpath = buildpath/"tools/clang"
-    libcxx_buildpath = buildpath/"projects/libcxx"
-    libcxxabi_buildpath = buildpath/"libcxxabi" # build failure if put in projects due to no Makefile
-
-    clang_buildpath.install resource("clang")
-    libcxx_buildpath.install resource("libcxx")
+    ### copy resources to build dir ##################################
+    (buildpath/"tools/clang").install resource("clang")
+    (buildpath/"projects/libcxx").install resource("libcxx")
     (buildpath/"tools/polly").install resource("polly")
     (buildpath/"tools/clang/tools/extra").install resource("clang-tools-extra")
     (buildpath/"projects/compiler-rt").install resource("compiler-rt") if build.with? "asan"
@@ -128,16 +116,21 @@ class Llvm33 < Formula
     end
 
     ENV["REQUIRES_RTTI"] = "1"
+    ENV["PKG_CONFIG_PATH"] = "#{Formula["isl@0.18"].lib}/pkgconfig:#{Formula["cloog"].lib}/pkgconfig:#{Formula["libffi"].lib}/pkgconfig"
 
     install_prefix = lib/"llvm-#{ver}"
 
+
+    ### configuration script arguments ###############################
     args = [
       "--prefix=#{install_prefix}",
       "--enable-optimized",
       "--disable-bindings",
-      "--with-gmp=#{Formula["gmp4"].opt_prefix}",
-      "--with-isl=#{Formula["isl011"].opt_prefix}",
-      "--with-cloog=#{Formula["cloog018"].opt_prefix}",
+      "--enable-libcpp",
+      "--enable-cxx11",
+      "--with-gmp=#{Formula["gmp"].opt_prefix}",
+      "--with-isl=#{Formula["isl@0.11"].opt_prefix}",
+      "--enable-libffi",
     ]
 
     if build.include? "all-targets"
@@ -147,11 +140,30 @@ class Llvm33 < Formula
     end
 
     args << "--enable-shared" unless build.include? "disable-shared"
-
-    args << "--disable-assertions" if build.include? "disable-assertions"
-
+    args << "--disable-assertions" unless build.include? "enable-assertions"
     args << "--enable-libffi" if build.with? "libffi"
+    args << "--with-cloog=#{Formula["cloog"].opt_prefix}" if build.with? "cloog"
 
+
+    ### build environment variables ##################################
+    pkg_config = [
+      "#{Formula["isl@0.11"].lib}/pkgconfig",
+    ]
+
+    pkg_config << "#{Formula["cloog"].lib}/pkgconfig" if build.with? "cloog"
+    pkg_config << "#{Formula["libffi"].lib}/pkgconfig" if build.with? "libffi"
+
+    if build.universal?
+      ENV.permit_arch_flags
+      ENV["UNIVERSAL"] = "1"
+      ENV["UNIVERSAL_ARCH"] = Hardware::CPU.universal_archs.join(" ")
+    end
+
+    ENV["REQUIRES_RTTI"] = "1"
+    ENV["PKG_CONFIG_PATH"] = pkg_config.join(":")
+
+
+    ### build and install ############################################
     system "./configure", *args
     system "make", "VERBOSE=1"
     system "make", "VERBOSE=1", "install"
@@ -304,3 +316,22 @@ index ab2e16e..dd2e13a 100644
      # If we're doing an Apple-style build, add the LTO object path.
      ifeq ($(RC_XBS),YES)
         TempFile        := $(shell mkdir -p ${OBJROOT}/dSYMs ; mktemp ${OBJROOT}/dSYMs/llvm-lto.XXXXXX)
+diff -u a/runtime/libprofile/Makefile b/runtime/libprofile/Makefile
+--- a/runtime/libprofile/Makefile	2019-08-18 22:12:09.096468645 +0200
++++ b/runtime/libprofile/Makefile	2019-08-18 22:12:18.403583367 +0200
+@@ -38,15 +38,6 @@
+                          -Wl,-dead_strip \
+                          -Wl,-seg1addr -Wl,0xE0000000 
+ 
+-    # Mac OS X 10.4 and earlier tools do not allow a second -install_name on
+-    # command line.
+-    DARWIN_VERS := $(shell echo $(TARGET_TRIPLE) | sed 's/.*darwin\([0-9]*\).*/\1/')
+-    ifneq ($(DARWIN_VERS),8)
+-       LLVMLibsOptions    := $(LLVMLibsOptions) \
+-                            -Wl,-install_name \
+-                            -Wl,"@executable_path/../lib/lib$(LIBRARYNAME)$(SHLIBEXT)"
+-    endif
+-
+     # If we're doing an Apple-style build, add the LTO object path.
+     ifeq ($(RC_XBS),YES)
+        TempFile           := $(shell mkdir -p ${OBJROOT}/dSYMs ; mktemp ${OBJROOT}/dSYMs/profile_rt-lto.XXXXXX)
