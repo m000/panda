@@ -105,9 +105,9 @@ void taint_state_changed(Addr a, uint64_t size)
                 report.label = labels[j];
                 if (seen.find(report) == seen.end()) {
                     seen.insert(report);
-                    fprintf(pidpclog, "%s,%lu,0x%lX,%u\n", process_name,
-                            (uint64_t)report.pid, (uint64_t)report.pc,
-                            report.label);
+                    fprintf(pidpclog,
+                            "%s," TARGET_PID_FMT ",0x" TARGET_PTR_FMT ",%u\n",
+                            process_name, report.pid, report.pc, report.label);
                 }
             }
         }

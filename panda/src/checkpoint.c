@@ -35,6 +35,8 @@ static int memfd_create(const char *name, unsigned int flags)
     return -1;
 #endif
 }
+#else
+#include <sys/mman.h>
 #endif
 
 #include "panda/checkpoint.h"
@@ -144,7 +146,7 @@ void *panda_checkpoint(void) {
     checkpoint->memfd_usage = lseek(checkpoint->memfd, 0, SEEK_CUR);
     total_usage += checkpoint->memfd_usage;
 
-    printf("Created checkpoint @ %lu. Size %.1f MB. Total usage %.1f GB\n",
+    printf("Created checkpoint @ %" PRIu64 ". Size %.1f MB. Total usage %.1f GB\n",
             instr_count, ((float) checkpoint->memfd_usage) / (1 << 20),
             ((float) total_usage) / (1 << 30));
 
@@ -166,7 +168,7 @@ void panda_restore(void *opaque) {
     assert(rr_in_replay());
     
     Checkpoint *checkpoint = (Checkpoint *)opaque;
-    printf("Restarting checkpoint @ instr count %lu\n", checkpoint->guest_instr_count);
+    printf("Restarting checkpoint @ instr count %" PRIu64 "\n", checkpoint->guest_instr_count);
         
     lseek(checkpoint->memfd, 0, SEEK_SET);
 

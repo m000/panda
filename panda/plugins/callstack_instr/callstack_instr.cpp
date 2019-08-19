@@ -19,6 +19,7 @@ PANDAENDCOMMENT */
 // 2019-MAY-21   add (more accurate) stack segregation option (threaded)
 #define __STDC_FORMAT_MACROS
 
+#include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
