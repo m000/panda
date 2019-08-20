@@ -83,7 +83,7 @@ else
 fi
 
 ### Set other configuration flags, depending on environment.
-MISC_CONFIG="--python=python2 --disable-vhost-net"
+MISC_CONFIG="--enable-capstone --python=python2 --disable-vhost-net"
 if pkg-config --exists --atleast-version 4.9 xencontrol; then
     ## Enable xencontrol compat API for libxen-4.9 (Ubuntu 18.04LTS).
     MISC_CONFIG="$MISC_CONFIG --extra-cflags=-DXC_WANT_COMPAT_DEVICEMODEL_API"
