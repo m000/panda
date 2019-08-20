@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <libgen.h>
 
 #define RR_LOG_STANDALONE
 #include "panda/include/panda/rr/rr_log.h"

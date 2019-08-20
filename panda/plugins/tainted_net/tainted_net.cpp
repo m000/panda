@@ -166,8 +166,9 @@ void taint_network_data(int packet_size, uint64_t old_buf_addr)
     }
 
     // Notify user that data is being tainted.
-    fprintf(stderr, PANDA_MSG "Applying labels to %d of %d IO items starting at 0x%lx, packet #%u\n",
-        num_labels_applied, packet_size, old_buf_addr, packet_count);
+    fprintf(stderr, PANDA_MSG "Applying labels to %d of %d IO items "
+            "starting at 0x" TARGET_PTR_FMT ", packet #%u\n",
+             num_labels_applied, packet_size, old_buf_addr, packet_count);
 }
 
 // if filtering on specific ipv4 protocols, determine if this packet matches one of the target protocols
@@ -266,11 +267,11 @@ static void on_replay_handle_outgoing_packet(CPUState *env, uint8_t *buf, int pa
                 // characters
                 if (isprint(buf[i]))
                 {
-                    fprintf(taintlogF, "%ld,%c,", curAddr, buf[i]);
+                    fprintf(taintlogF, "%" PRIu64 ",%c,", curAddr, buf[i]);
                 }
                 else
                 {
-                    fprintf(taintlogF, "%ld,.,", curAddr);
+                    fprintf(taintlogF, "%" PRIu64 ",.,", curAddr);
                 }
                 for (int j = 0; j < numLabels; j++)
                 {
@@ -282,11 +283,11 @@ static void on_replay_handle_outgoing_packet(CPUState *env, uint8_t *buf, int pa
             {
                 if (isprint(buf[i]))
                 {
-                    fprintf(taintlogF, "%ld,%c, NULL\n", curAddr, buf[i]);
+                    fprintf(taintlogF, "%" PRIu64 ",%c, NULL\n", curAddr, buf[i]);
                 }
                 else
                 {
-                    fprintf(taintlogF, "%ld,., NULL\n", curAddr);
+                    fprintf(taintlogF, "%" PRIu64 ",., NULL\n", curAddr);
                 }
             }
         } // end of loop through items in TX buffer

@@ -273,7 +273,7 @@ void PandaLog::write_current_chunk(){
 
     // ccs is final compressed chunk size
     assert(ret == Z_OK);
-    printf("writing chunk %u of pandalog, %" PRIu64 " / %" PRIu64 " = %.2f compression, %u entries\n",
+    printf("writing chunk %u of pandalog, %lu / %lu = %.2f compression, %u entries\n",
             this->chunk_num, chunk_sz, ccs, ((float)chunk_sz) / ccs,
             this->chunk.ind_entry);
     if (this->chunk.ind_entry == 0) {

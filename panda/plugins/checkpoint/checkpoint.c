@@ -29,7 +29,7 @@ bool before_block_exec(CPUState *env, TranslationBlock *tb) {
 
     if (progress == 0 || rr_get_guest_instr_count()/checkpoint_instr_size > progress) {
         progress++;
-        printf("Taking panda checkpoint %u... at %lu\n", progress, rr_get_guest_instr_count());
+        printf("Taking panda checkpoint %u... at %" PRIu64 "\n", progress, rr_get_guest_instr_count());
         panda_checkpoint();
         printf("Done.\n");
     }
@@ -57,18 +57,18 @@ void after_init(CPUState* env) {
     parse_option_size("space", avail_space, &space_bytes, NULL );
 
     // Get approx size of each checkpoint
-    printf("Avail space %lx, ram_size %lx\n", space_bytes, ram_size);
+    printf("Avail space %" PRIx64 ", ram_size %lx\n", space_bytes, ram_size);
     if (space_bytes < ram_size){
         fprintf(stderr, "Not enough RAM for a checkpoint!\n");
         abort();
     }
     uint64_t num_checkpoints = space_bytes/ram_size;
-    printf("Number of checkpoints allowed:  %lu\n", num_checkpoints);
+    printf("Number of checkpoints allowed:  %" PRIu64 "\n", num_checkpoints);
     checkpoint_instr_size = rr_nondet_log->last_prog_point.guest_instr_count/num_checkpoints;
     if (checkpoint_instr_size < 500000)
         checkpoint_instr_size = 500000;
 
-    printf("Instructions per checkpoint: %lu\n", checkpoint_instr_size);
+    printf("Instructions per checkpoint: %" PRIu64 "\n", checkpoint_instr_size);
 
 }
 

@@ -24,19 +24,19 @@
 #include "panda/common.h"
 #include "qemu/memfd.h"
 
-#if defined CONFIG_LINUX && !defined CONFIG_MEMFD
+#if !defined(CONFIG_MEMFD)
+#if defined CONFIG_LINUX && defined(__NR_memfd_create)
 #include <sys/syscall.h>
 #include <asm/unistd.h>
-static int memfd_create(const char *name, unsigned int flags)
-{
-#ifdef __NR_memfd_create
+static int memfd_create(const char *name, unsigned int flags) {
     return syscall(__NR_memfd_create, name, flags);
-#else
-    return -1;
-#endif
 }
 #else
-#include <sys/mman.h>
+static int memfd_create(const char *name, unsigned int flags) {
+    assert(false && "memfd_create not supported on your platform");
+    return -1;
+}
+#endif
 #endif
 
 #include "panda/checkpoint.h"
@@ -196,6 +196,7 @@ void panda_restore(void *opaque) {
     rr_max_num_queue_entries = checkpoint->max_num_queue_entries;
     rr_next_progress = checkpoint->next_progress;
 
+    // XXX: first_cpu->jmp_env always evaluate to true - says clang
     if (qemu_in_vcpu_thread() && first_cpu->jmp_env) {
         cpu_loop_exit(first_cpu);
     }

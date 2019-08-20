@@ -20,14 +20,14 @@ PANDAENDCOMMENT */
 #define __STDC_FORMAT_MACROS
 
 #include <cinttypes>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include <vector>
-#include <algorithm>
 
 #include <capstone/capstone.h>
 #if defined(TARGET_I386)
@@ -194,7 +194,7 @@ static stackid get_heuristic_stackid(CPUArchState* env) {
     stackid cursi;
 
     // We can short-circuit the search in most cases
-    if (std::abs(sp - cached_sp) < MAX_STACK_DIFF) {
+    if (std::imaxabs(sp - cached_sp) < MAX_STACK_DIFF) {
         cursi = std::make_tuple(asid, cached_sp, 0);
     } else {
         auto &stackset = stacks_seen[asid];
@@ -209,8 +209,8 @@ static stackid get_heuristic_stackid(CPUArchState* env) {
             target_ulong stack1 = *lb;
             lb--;
             target_ulong stack2 = *lb;
-            target_ulong stack = (std::abs(stack1 - sp) < std::abs(stack2 - sp)) ? stack1 : stack2;
-            int diff = std::abs(stack-sp);
+            target_ulong stack = (std::imaxabs(stack1 - sp) < std::imaxabs(stack2 - sp)) ? stack1 : stack2;
+            int diff = std::imaxabs(stack-sp);
             if (diff < MAX_STACK_DIFF) {
                 cursi = std::make_tuple(asid, stack, 0);
             }
