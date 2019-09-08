@@ -1,5 +1,5 @@
 #pragma once
-#include <panda/debug.h>
+#include "panda/debug.h"
 
 #define ASID0 ((target_ptr_t)-1) /**< Invalid ASID value. Also used by (most) linux kernel processes. */
 
