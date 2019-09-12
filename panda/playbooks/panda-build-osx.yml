@@ -5,8 +5,9 @@
     panda_root: "{{ (playbook_dir + '/../..') | realpath }}"
     panda_build: "{{ (panda_root + '/../panda-build') | realpath }}"
     panda_install: "{{panda_build}}/install}}"
-    homebrew_root: "{{homebrew_prefix.stdout}}"
-    homebrew_formulas: "{{homebrew_root}}/Library/Taps/homebrew/homebrew-core/Formula"
+    homebrew_root: "{{ homebrew_config.stdout_lines[0] }}"
+    homebrew_core_root: "{{ homebrew_config.stdout_lines[1] }}"
+    homebrew_core_formulas: "{{homebrew_core_root}}/Formula"
     llvm_root: "{{homebrew_root}}/opt/llvm@3.3"
     llvm_config: "{{llvm_root}}/bin/llvm-config"
 
@@ -49,13 +50,13 @@
       - "--disable-plugins={{panda_disable_plugins | join(',')}}"
 
   tasks:
-    - name: "get homebrew prefix"
-      shell: "brew --prefix"
-      register: homebrew_prefix
+    - name: "get homebrew config"
+      shell: "brew --repo && brew --repo homebrew/core"
+      register: homebrew_config
     - name: "copy formulas"
       copy:
         src: resources/homebrew/
-        dest: "{{homebrew_formulas}}"
+        dest: "{{homebrew_core_formulas}}"
     - name: "install pre-requisites"
       # See https://wiki.qemu.org/Hosts/Mac
       homebrew:
