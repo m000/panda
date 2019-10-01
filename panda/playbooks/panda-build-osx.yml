@@ -4,7 +4,7 @@
     # paths
     panda_root: "{{ (playbook_dir + '/../..') | realpath }}"
     panda_build: "{{ (panda_root + '/../panda-build') | realpath }}"
-    panda_install: "{{panda_build}}/install}}"
+    panda_install: "{{panda_build}}/install"
     homebrew_root: "{{ homebrew_config.stdout_lines[0] }}"
     homebrew_core_root: "{{ homebrew_config.stdout_lines[1] }}"
     homebrew_core_formulas: "{{homebrew_core_root}}/Formula"
@@ -12,7 +12,7 @@
     llvm_config: "{{llvm_root}}/bin/llvm-config"
 
     # pre-requisites
-    qemu_prerequisites: ['libffi', 'gettext', 'glib', 'pkg-config', 'autoconf', 'automake', 'pixman']
+    qemu_prerequisites: ['autoconf', 'automake', 'gettext', 'glib', 'libffi', 'libjpeg', 'pixman', 'pkg-config']
     panda_prerequisites: ['libdwarf', 'isl@0.11', 'llvm@3.3', 'capstone', 'protobuf', 'protobuf-c']
     python_prerequisites: "pycparser>2.10"
 
@@ -51,8 +51,11 @@
 
   tasks:
     - name: "get homebrew config"
-      shell: "brew --repo && brew --repo homebrew/core"
+      shell: "brew --repo && brew --repo homebrew/core && brew update"
       register: homebrew_config
+    - name: "update homebrew"
+      homebrew:
+        update_homebrew: yes
     - name: "copy formulas"
       copy:
         src: resources/homebrew/
