@@ -20,6 +20,28 @@ kind of backporting, please go ahead and give it a try.
 Until then, the compiled version may (or may not) run correctly on older
 versions of MacOS.
 
+### Homebrew python versions
+
+You will need Python 2 `pip` or `pip2` in your path for the ansible playbook
+to work.
+
+* Python 2 and Python 3 installed, Python 3 preferred:
+  ```
+  brew unlink python
+  brew unlink python@2
+  brew link python@2
+  brew link --overwrite python
+  ```
+* Python 2 and Python 3 installed, Python 2 preferred:
+  ```
+  brew unlink python
+  brew unlink python@2
+  brew link python
+  brew link --overwrite python@2
+  ```
+* System Python preferred: Make sure that the system Python comes first in
+  your `PATH` and that `pip` is installed for it.
+
 ### TL;DR
 
 * Install Ansible: `brew install ansible`
